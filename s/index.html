@@ -19,11 +19,13 @@
   html, body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, -apple-system, Roboto, sans-serif; }
   body { min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:12px; }
   .card { position:relative; width:100%; max-width:400px; background:var(--card); border-radius:22px; padding:16px 16px 14px; }
-  .head { display:flex; align-items:center; gap:12px; margin:0 34px 12px 0; }
+  .head { display:flex; align-items:center; gap:12px; margin:0 62px 12px 0; }
   .head img { width:44px; height:44px; border-radius:12px; flex:none; }
   h1 { font-size:19px; line-height:1.2; margin:0; }
   .lang { position:absolute; top:14px; right:14px; font:12px system-ui, sans-serif; color:var(--dim); background:none; cursor:pointer;
-          border:1px solid var(--line); border-radius:8px; padding:3px 6px; }
+          border:1px solid var(--line); border-radius:8px; padding:3px 7px; }
+  .lang b { color:var(--accent); font-weight:700; }
+  .lang span { margin:0 3px; opacity:.6; }
   .grid { display:grid; grid-template-columns:repeat(9,1fr); width:100%; max-width:min(100%, 52vh); aspect-ratio:1; margin:0 auto;
           border:2px solid var(--text); border-radius:6px; overflow:hidden; }
   .grid div { display:flex; align-items:center; justify-content:center; font:600 clamp(13px,4.4vw,19px) system-ui, sans-serif;
@@ -117,7 +119,8 @@
     $('stores').appendChild(a);
   });
   $('apkNote').textContent = t.apkNote;
-  $('switch').textContent = t.other;
+  // «RU / EN»: the current language first and highlighted; a tap switches to the other one
+  $('switch').innerHTML = '<b>' + lang.toUpperCase() + '</b><span>/</span>' + t.other;
   var self = location.origin + location.pathname;
 
   if (!code) {
