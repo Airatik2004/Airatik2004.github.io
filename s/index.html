@@ -27,6 +27,14 @@
   .code b { display:block; word-break:break-all; font:600 15px ui-monospace, monospace; margin-top:6px; }
   .lang { margin-top:18px; font-size:13px; }
   .lang a { color:var(--dim); }
+  .grid { display:grid; grid-template-columns:repeat(9,1fr); width:100%; max-width:330px; aspect-ratio:1; margin:4px auto 6px;
+          border:2px solid var(--text); border-radius:6px; overflow:hidden; background:var(--card); }
+  .grid div { display:flex; align-items:center; justify-content:center; font:600 clamp(14px,4.6vw,20px) system-ui, sans-serif;
+              border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .grid div.r { border-right:2px solid var(--text); }
+  .grid div.b { border-bottom:2px solid var(--text); }
+  .meta { font-size:14px; color:var(--dim); margin:0 0 14px; }
+  .meta b { color:var(--text); }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -34,6 +42,8 @@
 <main class="card">
   <div class="logo"><span>5</span><span></span><span>3</span><span></span><span>7</span><span></span><span>1</span><span></span><span>9</span></div>
   <h1 id="title"></h1>
+  <div class="grid" id="grid" hidden></div>
+  <p class="meta" id="meta" hidden></p>
   <p id="lead"></p>
   <a class="btn main" id="open" href="#" hidden></a>
   <div class="get" id="get">
@@ -64,7 +74,9 @@
       apkNote: 'APK — файл для установки напрямую: Android спросит разрешение на установку из этого источника.',
       noapp: 'Похоже, игра ещё не установлена — установите её ниже, потом снова нажмите на ссылку.',
       codeNote: 'В версии 1.0 код вводится вручную: «Своё судоку» → «Решить по коду».',
-      copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'English'
+      copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'English',
+      levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
+      level: 'Уровень', result: 'Результат друга', mistakes: 'ошибок', hints: 'подсказок'
     },
     en: {
       titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
@@ -74,7 +86,9 @@
       apk: 'Download the APK (GitHub)', rustore: 'RuStore (Russia)',
       apkNote: 'The APK is a file to install directly: Android will ask you to allow installing from this source.',
       noapp: 'It looks like the game is not installed yet — install it below, then tap the link again.',
-      codeNote: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'Русский'
+      codeNote: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'Русский',
+      levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
+      level: 'Level', result: 'Friend\'s result', mistakes: 'mistakes', hints: 'hints'
     }
   };
   var q = location.search;
@@ -114,6 +128,7 @@
     return;
   }
   $('title').textContent = code.indexOf('~') > 0 ? t.titleChallenge : t.titleShared;
+  drawPuzzle(code);
   $('lead').textContent = /[?&]noapp=1/.test(q) ? t.noapp : t.lead;
   var open = $('open');
   open.hidden = false;
@@ -138,6 +153,48 @@
       else { var r = document.createRange(); r.selectNode($('code'));
              getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); done(); }
     };
+  }
+
+  /**
+   * The code as in the game (PuzzleCode): "<level 1..8>-<base36>[~seconds.errors.hints]". Read from the last cell:
+   * a bit 1 = a given whose digit-1 comes next in base 9, a bit 0 = an empty cell; what is left must be 1.
+   */
+  function decode(c) {
+    var t2 = c.indexOf('~'), res = null;
+    if (t2 > 0) { res = c.slice(t2 + 1).split('.').map(Number); c = c.slice(0, t2); }
+    var n = 0n, s = c.slice(2).toLowerCase();
+    for (var i = 0; i < s.length; i++) n = n * 36n + BigInt(parseInt(s[i], 36));
+    var p = new Array(81).fill(0);
+    for (var k = 80; k >= 0; k--) {
+      var bit = n % 2n; n /= 2n;
+      if (bit) { p[k] = Number(n % 9n) + 1; n /= 9n; }
+    }
+    if (n !== 1n) return null;
+    return { level: parseInt(c[0], 10) - 1, cells: p, res: res };
+  }
+  function drawPuzzle(c) {
+    var d;
+    try { d = decode(c); } catch (e) { d = null; }
+    if (!d) return;
+    var g = $('grid');
+    for (var k = 0; k < 81; k++) {
+      var cell = document.createElement('div');
+      var col = k % 9, row = (k / 9) | 0;
+      if (col === 2 || col === 5) cell.className += ' r';
+      if (row === 2 || row === 5) cell.className += ' b';
+      if (d.cells[k]) cell.textContent = d.cells[k];
+      g.appendChild(cell);
+    }
+    g.hidden = false;
+    var m = $('meta'), parts = [];
+    if (t.levels[d.level]) parts.push(t.level + ': <b>' + t.levels[d.level] + '</b>');
+    if (d.res && d.res.length === 3) {
+      var sec = d.res[0], mm = Math.floor(sec / 60), ss = sec % 60;
+      parts.push(t.result + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
+        + t.mistakes + ' ' + d.res[1] + ' · ' + t.hints + ' ' + d.res[2]);
+    }
+    m.innerHTML = parts.join('<br>');
+    m.hidden = parts.length === 0;
   }
 })();
 </script>
