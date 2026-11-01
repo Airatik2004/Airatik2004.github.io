@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Судоку · Sudoky</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <meta name="description" content="Вам прислали судоку — откройте, чтобы увидеть уровень и результат. Someone sent you a sudoku — open it to see the level and the result.">
@@ -16,54 +16,53 @@
   :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3D5AFE; --onaccent:#fff; --line:#E1E4EE; }
   @media (prefers-color-scheme: dark) { :root { --bg:#14151c; --card:#1f2029; --text:#ececf2; --dim:#9a9cb0; --accent:#8193FF; --onaccent:#14151c; --line:#2A2D3B; } }
   * { box-sizing:border-box; }
-  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text);
-         font:16px/1.45 system-ui, -apple-system, Roboto, sans-serif; padding:20px; }
-  .card { width:100%; max-width:420px; background:var(--card); border-radius:24px; padding:28px 22px; text-align:center; }
-  .logo { display:block; width:76px; height:76px; margin:0 auto 14px; border-radius:20px; }
-  h1 { font-size:22px; margin:0 0 6px; }
-  p { margin:0 0 18px; color:var(--dim); }
-  a.btn, button { display:block; width:100%; border:0; border-radius:999px; padding:14px; font:600 16px system-ui, sans-serif;
-                  text-decoration:none; cursor:pointer; margin-top:10px; }
-  .main { background:var(--accent); color:var(--onaccent); }
-  .alt { background:transparent; color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
-  .get { margin-top:22px; padding-top:18px; border-top:1px solid var(--line); }
-  .get h2 { font-size:15px; margin:0 0 4px; }
-  small { color:var(--dim); display:block; margin-top:8px; font-size:13px; }
-  .code b { display:block; word-break:break-all; font:600 15px ui-monospace, monospace; margin-top:6px; }
-  .lang { margin-top:18px; font-size:13px; }
-  .lang a { color:var(--dim); }
-  .grid { display:grid; grid-template-columns:repeat(9,1fr); width:100%; max-width:330px; aspect-ratio:1; margin:4px auto 6px;
-          border:2px solid var(--text); border-radius:6px; overflow:hidden; background:var(--card); }
-  .grid div { display:flex; align-items:center; justify-content:center; font:600 clamp(14px,4.6vw,20px) system-ui, sans-serif;
+  html, body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, -apple-system, Roboto, sans-serif; }
+  body { min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:12px; }
+  .card { position:relative; width:100%; max-width:400px; background:var(--card); border-radius:22px; padding:16px 16px 14px; }
+  .head { display:flex; align-items:center; gap:12px; margin:0 34px 12px 0; }
+  .head img { width:44px; height:44px; border-radius:12px; flex:none; }
+  h1 { font-size:19px; line-height:1.2; margin:0; }
+  .lang { position:absolute; top:14px; right:14px; font-size:12px; color:var(--dim); text-decoration:none;
+          border:1px solid var(--line); border-radius:8px; padding:3px 6px; }
+  .grid { display:grid; grid-template-columns:repeat(9,1fr); width:100%; max-width:min(100%, 52vh); aspect-ratio:1; margin:0 auto;
+          border:2px solid var(--text); border-radius:6px; overflow:hidden; }
+  .grid div { display:flex; align-items:center; justify-content:center; font:600 clamp(13px,4.4vw,19px) system-ui, sans-serif;
               border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
   .grid div.r { border-right:2px solid var(--text); }
   .grid div.b { border-bottom:2px solid var(--text); }
-  .meta { font-size:14px; color:var(--dim); margin:0 0 14px; }
+  .meta { text-align:center; font-size:13.5px; color:var(--dim); margin:8px 0 12px; }
   .meta b { color:var(--text); }
+  p.lead { color:var(--dim); margin:0 0 14px; }
+  a.btn { display:block; border-radius:999px; padding:13px 10px; font:600 15.5px system-ui, sans-serif; text-align:center; text-decoration:none; }
+  .main { background:var(--accent); color:var(--onaccent); }
+  .alt { color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
+  .get { margin-top:12px; }
+  .get .label { text-align:center; font-size:13px; color:var(--dim); margin-bottom:8px; }
+  .row { display:flex; gap:8px; }
+  .row a { flex:1; padding:11px 6px; font-size:14.5px; }
+  .note { text-align:center; font-size:12px; color:var(--dim); margin-top:8px; }
+  details { margin-top:10px; font-size:12.5px; color:var(--dim); text-align:center; }
+  details summary { cursor:pointer; }
+  details b { display:block; word-break:break-all; font:600 13px ui-monospace, monospace; color:var(--text); margin:6px 0; }
+  details button { border:0; background:none; color:var(--accent); font:600 13px system-ui, sans-serif; cursor:pointer; padding:4px; }
   [hidden] { display:none !important; }
 </style>
 </head>
 <body>
 <main class="card">
-  <img class="logo" src="/icon.png" alt="">
-  <h1 id="title"></h1>
+  <a class="lang" id="switch" href="#"></a>
+  <div class="head"><img src="/icon.png" alt=""><h1 id="title"></h1></div>
   <div class="grid" id="grid" hidden></div>
-  <p class="meta" id="meta" hidden></p>
-  <p id="lead"></p>
+  <div class="meta" id="meta" hidden></div>
+  <p class="lead" id="lead" hidden></p>
   <a class="btn main" id="open" href="#" hidden></a>
   <div class="get" id="get">
-    <h2 id="getTitle"></h2>
-    <small id="getNote"></small>
-    <!-- stores: add new ones here, in the STORES list below -->
-    <div id="stores"></div>
-    <small id="apkNote"></small>
+    <div class="label" id="getLabel"></div>
+    <div class="row" id="stores"></div>
+    <div class="note" id="apkNote"></div>
   </div>
-  <div class="get code" id="codeBox" hidden>
-    <small id="codeNote"></small>
-    <b id="code"></b>
-    <button class="alt" id="copy"></button>
-  </div>
-  <div class="lang"><a href="#" id="switch"></a></div>
+  <!-- version 1.0 can't open links: its users type the code by hand. TODO: remove when 1.1 is in RuStore -->
+  <details id="codeBox" hidden><summary id="codeSum"></summary><b id="code"></b><button id="copy"></button></details>
 </main>
 <script>
 (function () {
@@ -72,30 +71,25 @@
   var TXT = {
     ru: {
       titleShared: 'Вам прислали судоку', titleChallenge: 'Побей моё время!', titlePlain: 'Судоку',
-      lead: 'Откройте её в игре «Судоку». Если игры ещё нет — установите её, это бесплатно и без рекламы.',
       leadPlain: 'Судоку без рекламы: 7 уровней, оценка сложности по шкале SE, тренировка приёмов, своё судоку.',
-      open: 'Открыть в игре', getTitle: 'Установить игру', getNote: 'Выберите, откуда:',
-      apk: 'Скачать APK (GitHub)', rustore: 'RuStore',
-      apkNote: 'APK — файл для установки напрямую: Android спросит разрешение на установку из этого источника.',
-      noapp: 'Похоже, игра ещё не установлена — установите её ниже, потом снова нажмите на ссылку.',
-      codeNote: 'В версии 1.0 код вводится вручную: «Своё судоку» → «Решить по коду».',
-      copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'English',
+      noapp: 'Похоже, игры ещё нет — установите её, потом снова нажмите на ссылку.',
+      open: 'Открыть в игре', getLabel: 'Нет игры? Установите:', getPlain: 'Установить:',
+      apk: 'APK (GitHub)', rustore: 'RuStore',
+      apkNote: 'APK ставится напрямую — Android спросит разрешение',
+      codeSum: 'У вас версия 1.0? Код для ручного ввода', copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'EN',
       levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
-      level: 'Уровень', result: 'Результат друга', mistakes: 'ошибок', hints: 'подсказок',
-      depth: 'Глубина SE', density: 'плотность', dec: ','
+      friend: 'Друг', mistakes: 'ошибок', hints: 'подсказок', dec: ','
     },
     en: {
       titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
-      lead: 'Open it in the Sudoky game. If you don\'t have it yet, install it — it is free and has no ads.',
       leadPlain: 'Sudoku without ads: 7 levels, difficulty on the SE scale, technique practice, your own puzzles.',
-      open: 'Open in the game', getTitle: 'Get the game', getNote: 'Choose where from:',
-      apk: 'Download the APK (GitHub)', rustore: 'RuStore (Russia)',
-      apkNote: 'The APK is a file to install directly: Android will ask you to allow installing from this source.',
-      noapp: 'It looks like the game is not installed yet — install it below, then tap the link again.',
-      codeNote: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'Русский',
+      noapp: 'It looks like you don\'t have the game yet — install it, then tap the link again.',
+      open: 'Open in the game', getLabel: 'No game yet? Install it:', getPlain: 'Install:',
+      apk: 'APK (GitHub)', rustore: 'RuStore (Russia)',
+      apkNote: 'The APK installs directly — Android will ask for permission',
+      codeSum: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'RU',
       levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
-      level: 'Level', result: 'Friend\'s result', mistakes: 'mistakes', hints: 'hints',
-      depth: 'SE depth', density: 'density', dec: '.'
+      friend: 'Friend', mistakes: 'mistakes', hints: 'hints', dec: '.'
     }
   };
   var q = location.search;
@@ -110,32 +104,33 @@
   var $ = function (id) { return document.getElementById(id); };
 
   // where to get the game: the APK (always the newest version) first, then the stores
-  var STORES = [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }];
-  STORES.forEach(function (s, i) {
+  [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }].forEach(function (s, i) {
     var a = document.createElement('a');
     a.className = 'btn ' + (i === 0 && !code ? 'main' : 'alt');
     a.href = s.url; a.textContent = t[s.key];
     if (s.key === 'apk') a.setAttribute('download', 'Sudoky.apk');
     $('stores').appendChild(a);
   });
-  $('getTitle').textContent = t.getTitle;
-  $('getNote').textContent = t.getNote;
   $('apkNote').textContent = t.apkNote;
 
   var self = location.origin + location.pathname;
-  var other = lang === 'ru' ? 'en' : 'ru';
   $('switch').textContent = t.other;
-  $('switch').href = self + '?' + (code ? 'c=' + encodeURIComponent(code) + '&' : '') + 'lang=' + other;
+  $('switch').href = self + '?' + (code ? 'c=' + encodeURIComponent(code) + '&' : '')
+    + (/[?&]se=\d+/.test(q) ? q.match(/se=\d+/)[0] + '&' : '') + (/[?&]d=\d+/.test(q) ? q.match(/d=\d+/)[0] + '&' : '')
+    + 'lang=' + (lang === 'ru' ? 'en' : 'ru');
 
   if (!code) {
     $('title').textContent = t.titlePlain;
     $('lead').textContent = t.leadPlain;
+    $('lead').hidden = false;
+    $('getLabel').textContent = t.getPlain;
     document.title = t.titlePlain;
     return;
   }
   $('title').textContent = code.indexOf('~') > 0 ? t.titleChallenge : t.titleShared;
   drawPuzzle(code);
-  $('lead').textContent = /[?&]noapp=1/.test(q) ? t.noapp : t.lead;
+  $('getLabel').textContent = t.getLabel;
+  if (/[?&]noapp=1/.test(q)) { $('lead').textContent = t.noapp; $('lead').hidden = false; }
   var open = $('open');
   open.hidden = false;
   open.textContent = t.open;
@@ -146,10 +141,9 @@
       '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
     : '#get';
 
-  // version 1.0 can't open links: its users type the code by hand. TODO: remove this block when 1.1 is in RuStore
-  if (t.codeNote) {
+  if (t.codeSum) {
     $('codeBox').hidden = false;
-    $('codeNote').textContent = t.codeNote;
+    $('codeSum').textContent = t.codeSum;
     $('code').textContent = code;
     var copy = $('copy');
     copy.textContent = t.copy;
@@ -178,6 +172,7 @@
     if (n !== 1n) return null;
     return { level: parseInt(c[0], 10) - 1, cells: p, res: res };
   }
+  /** The grid, then one or two lines: «Средний · SE 3,0 (3)» and the friend's result. */
   function drawPuzzle(c) {
     var d;
     try { d = decode(c); } catch (e) { d = null; }
@@ -192,21 +187,21 @@
       g.appendChild(cell);
     }
     g.hidden = false;
-    var m = $('meta'), parts = [];
-    if (t.levels[d.level]) parts.push(t.level + ': <b>' + t.levels[d.level] + '</b>');
-    // the game adds &se=<tenths>&d=<key moves> to the link (as «SE 4,4 (2)» in the game)
+    var line = t.levels[d.level] ? '<b>' + t.levels[d.level] + '</b>' : '';
+    // the game adds &se=<tenths>&d=<key moves> to the link: «SE 3,0 (3)» as in the game
     var se = /[?&]se=(\d{1,3})/.exec(q), dn = /[?&]d=(\d{1,2})/.exec(q);
     if (se) {
       var r = +se[1], txt = r >= 105 ? '10+' : r >= 90 ? '9+' : r >= 80 ? '8+' : r === 70 ? '7+' : Math.floor(r / 10) + t.dec + (r % 10);
-      parts.push(t.depth + ': <b>' + txt + '</b>' + (dn && +dn[1] > 0 ? ', ' + t.density + ' ' + dn[1] : ''));
+      line += (line ? ' · ' : '') + 'SE <b>' + txt + '</b>' + (dn && +dn[1] > 0 ? ' (' + dn[1] + ')' : '');
     }
+    var lines = line ? [line] : [];
     if (d.res && d.res.length === 3) {
       var sec = d.res[0], mm = Math.floor(sec / 60), ss = sec % 60;
-      parts.push(t.result + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
+      lines.push(t.friend + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
         + t.mistakes + ' ' + d.res[1] + ' · ' + t.hints + ' ' + d.res[2]);
     }
-    m.innerHTML = parts.join('<br>');
-    m.hidden = parts.length === 0;
+    $('meta').innerHTML = lines.join('<br>');
+    $('meta').hidden = lines.length === 0;
   }
 })();
 </script>
