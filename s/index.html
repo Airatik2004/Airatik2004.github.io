@@ -41,11 +41,6 @@
   .row { display:flex; gap:8px; }
   .row a { flex:1; padding:11px 6px; font-size:14.5px; }
   .note { text-align:center; font-size:12px; color:var(--dim); margin-top:8px; }
-  details { margin-top:10px; font-size:12.5px; color:var(--dim); text-align:center; }
-  details summary { cursor:pointer; }
-  details ol { text-align:left; margin:8px 0 4px; padding-left:22px; line-height:1.45; }
-  details b { display:block; word-break:break-all; font:600 13px ui-monospace, monospace; color:var(--text); margin:6px 0; }
-  details button { border:0; background:none; color:var(--accent); font:600 13px system-ui, sans-serif; cursor:pointer; padding:4px; }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -62,8 +57,6 @@
     <div class="row" id="stores"></div>
     <div class="note" id="apkNote"></div>
   </div>
-  <!-- version 1.0 can't open links: its users type the code by hand. TODO: remove when 1.1 is in RuStore -->
-  <details id="codeBox" hidden><summary id="codeSum"></summary><ol id="codeSteps"></ol><b id="code"></b><button id="copy"></button><div id="codeNote"></div></details>
 </main>
 <script>
 (function () {
@@ -77,10 +70,7 @@
       open: 'Открыть в игре', getLabel: 'Нет игры? Установите:', getPlain: 'Установить:',
       apk: 'APK (GitHub)', rustore: 'RuStore',
       apkNote: 'APK ставится напрямую — Android спросит разрешение',
-      codeSum: 'У вас версия 1.0.0? Код для ручного ввода',
-      codeSteps: ['Скопируйте код — кнопка ниже.', 'В игре в главном меню нажмите «Своё судоку» → «Решить по коду».',
-        'Если код не подставился сам, вставьте его в поле и нажмите «Играть».'],
-      codeNote: 'С версии 1.1.0 ссылки сразу открывают игру — обновитесь через APK выше, и коды вводить не придётся.', copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'EN',
+      other: 'EN',
       levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
       friend: 'Друг', mistakes: 'ошибок', hints: 'подсказок', dec: ','
     },
@@ -91,7 +81,7 @@
       open: 'Open in the game', getLabel: 'No game yet? Install it:', getPlain: 'Install:',
       apk: 'APK (GitHub)', rustore: 'RuStore (Russia)',
       apkNote: 'The APK installs directly — Android will ask for permission',
-      codeSum: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'RU',
+      other: 'RU',
       levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
       friend: 'Friend', mistakes: 'mistakes', hints: 'hints', dec: '.'
     }
@@ -116,7 +106,7 @@
   t = TXT[lang];
   document.documentElement.lang = lang;
   ['stores', 'grid'].forEach(function (id) { $(id).innerHTML = ''; });
-  ['grid', 'meta', 'lead', 'open', 'codeBox'].forEach(function (id) { $(id).hidden = true; });
+  ['grid', 'meta', 'lead', 'open'].forEach(function (id) { $(id).hidden = true; });
 
   // where to get the game: the APK (always the newest version) first, then the stores
   [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }].forEach(function (s, i) {
@@ -152,22 +142,6 @@
       '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
     : '#get';
 
-  if (t.codeSum) {
-    $('codeBox').hidden = false;
-    $('codeSum').textContent = t.codeSum;
-    $('codeSteps').innerHTML = '';
-    t.codeSteps.forEach(function (x) { var li = document.createElement('li'); li.textContent = x; $('codeSteps').appendChild(li); });
-    $('code').textContent = code;
-    $('codeNote').textContent = t.codeNote;
-    var copy = $('copy');
-    copy.textContent = t.copy;
-    copy.onclick = function () {
-      var done = function () { copy.textContent = t.copied; };
-      if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, function () {});
-      else { var r = document.createRange(); r.selectNode($('code'));
-             getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); done(); }
-    };
-  }
   }
 
   /**
