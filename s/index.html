@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Судоку · Sudoky</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 <meta name="description" content="Судоку без рекламы: 7 уровней, оценка по шкале SE, тренировка приёмов. Sudoku without ads: 7 levels, SE ratings, technique practice.">
 <style>
   :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3D5AFE; --onaccent:#fff; --line:#E1E4EE; }
@@ -12,9 +13,7 @@
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text);
          font:16px/1.45 system-ui, -apple-system, Roboto, sans-serif; padding:20px; }
   .card { width:100%; max-width:420px; background:var(--card); border-radius:24px; padding:28px 22px; text-align:center; }
-  .logo { width:72px; height:72px; margin:0 auto 14px; border-radius:18px; background:var(--accent); color:var(--onaccent);
-          display:grid; grid-template-columns:repeat(3,1fr); padding:12px; gap:3px; font-weight:700; font-size:13px; }
-  .logo span { display:flex; align-items:center; justify-content:center; }
+  .logo { display:block; width:76px; height:76px; margin:0 auto 14px; border-radius:20px; }
   h1 { font-size:22px; margin:0 0 6px; }
   p { margin:0 0 18px; color:var(--dim); }
   a.btn, button { display:block; width:100%; border:0; border-radius:999px; padding:14px; font:600 16px system-ui, sans-serif;
@@ -40,7 +39,7 @@
 </head>
 <body>
 <main class="card">
-  <div class="logo"><span>5</span><span></span><span>3</span><span></span><span>7</span><span></span><span>1</span><span></span><span>9</span></div>
+  <img class="logo" src="/icon.png" alt="">
   <h1 id="title"></h1>
   <div class="grid" id="grid" hidden></div>
   <p class="meta" id="meta" hidden></p>
@@ -102,9 +101,8 @@
   document.documentElement.lang = lang;
   var $ = function (id) { return document.getElementById(id); };
 
-  // where to get the game: Russian visitors see RuStore first, others the APK first
+  // where to get the game: the APK (always the newest version) first, then the stores
   var STORES = [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }];
-  if (lang === 'ru') STORES.reverse();
   STORES.forEach(function (s, i) {
     var a = document.createElement('a');
     a.className = 'btn ' + (i === 0 && !code ? 'main' : 'alt');
@@ -140,7 +138,7 @@
       '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
     : '#get';
 
-  // version 1.0 can't open links: its users type the code by hand
+  // version 1.0 can't open links: its users type the code by hand. TODO: remove this block when 1.1 is in RuStore
   if (t.codeNote) {
     $('codeBox').hidden = false;
     $('codeNote').textContent = t.codeNote;
