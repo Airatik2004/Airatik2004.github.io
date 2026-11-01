@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Судоку — вам прислали судоку</title>
+<meta name="description" content="Реши судоку, которой с тобой поделились, в игре «Судоку» без рекламы.">
+<style>
+  :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3F51B5; --onaccent:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14151c; --card:#1f2029; --text:#ececf2; --dim:#9a9cb0; --accent:#9FA8DA; --onaccent:#14151c; } }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text);
+         font:16px/1.45 system-ui, -apple-system, Roboto, sans-serif; padding:20px; }
+  .card { width:100%; max-width:420px; background:var(--card); border-radius:24px; padding:28px 22px; text-align:center; }
+  .logo { width:72px; height:72px; margin:0 auto 14px; border-radius:18px; background:var(--accent); color:var(--onaccent);
+          display:grid; grid-template-columns:repeat(3,1fr); padding:12px; gap:3px; font-weight:700; font-size:13px; }
+  .logo span { display:flex; align-items:center; justify-content:center; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p { margin:0 0 18px; color:var(--dim); }
+  a.btn, button { display:block; width:100%; border:0; border-radius:999px; padding:14px; font:600 16px system-ui, sans-serif;
+                  text-decoration:none; cursor:pointer; margin-top:10px; }
+  .main { background:var(--accent); color:var(--onaccent); }
+  .alt { background:transparent; color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
+  .code { margin-top:22px; padding-top:18px; border-top:1px solid color-mix(in srgb, var(--dim) 30%, transparent); }
+  .code small { color:var(--dim); display:block; margin-bottom:8px; }
+  .code b { display:block; word-break:break-all; font:600 15px ui-monospace, monospace; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo"><span>5</span><span></span><span>3</span><span></span><span>7</span><span></span><span>1</span><span></span><span>9</span></div>
+  <h1 id="title">Вам прислали судоку</h1>
+  <p id="lead">Откройте её в игре «Судоку». Если игры ещё нет — установите её из RuStore, это бесплатно и без рекламы.</p>
+  <a class="btn main" id="open" href="#">Открыть в игре</a>
+  <a class="btn alt" id="store" href="https://www.rustore.ru/catalog/app/ru.sudoky">Скачать в RuStore</a>
+  <div class="code" id="codeBox" hidden>
+    <small>Или в игре: «Своё судоку» → «Решить по коду», код:</small>
+    <b id="code"></b>
+    <button class="alt" id="copy">Скопировать код</button>
+  </div>
+</main>
+<script>
+(function () {
+  var STORE = 'https://www.rustore.ru/catalog/app/ru.sudoky';
+  var m = /[?&]c=([^&#]+)/.exec(location.search) || /^#(.+)$/.exec(location.hash);
+  var code = m ? decodeURIComponent(m[1]).trim() : '';
+  if (!/^[1-8]-[0-9A-Za-z]{12,60}(~\d{1,6}\.\d{1,3}\.\d{1,3})?$/.test(code)) code = '';
+  var open = document.getElementById('open');
+  if (!code) {
+    document.getElementById('title').textContent = 'Судоку';
+    document.getElementById('lead').textContent = 'Игра «Судоку» без рекламы — в RuStore.';
+    open.hidden = true;
+    return;
+  }
+  if (code.indexOf('~') > 0) document.getElementById('title').textContent = 'Побей моё время!';
+  document.getElementById('code').textContent = code;
+  document.getElementById('codeBox').hidden = false;
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  open.href = isAndroid
+    ? 'intent://airatik2004.github.io/s/?c=' + encodeURIComponent(code) +
+      '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(STORE) + ';end'
+    : STORE;
+  var copy = document.getElementById('copy');
+  copy.onclick = function () {
+    var done = function () { copy.textContent = 'Скопировано ✓'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, function () {});
+    else { var r = document.createRange(); r.selectNode(document.getElementById('code'));
+           getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); done(); }
+  };
+})();
+</script>
+</body>
+</html>
