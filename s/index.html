@@ -138,11 +138,13 @@
   var open = $('open');
   open.hidden = false;
   open.textContent = t.open;
-  // Android: open the game by its package; without the game Chrome comes back here with noapp=1
+  // Android: the game's own address sudoky://s/?c=… (the https link itself always stays in the browser);
+  // without the game Chrome comes back here with noapp=1
   var back = self + '?c=' + encodeURIComponent(code) + '&noapp=1&lang=' + lang;
+  var extra = (/[?&]se=\d+/.test(q) ? '&' + q.match(/se=\d+/)[0] : '') + (/[?&]d=\d+/.test(q) ? '&' + q.match(/d=\d+/)[0] : '');
   open.href = /Android/i.test(navigator.userAgent)
-    ? 'intent://airatik2004.github.io/s/?c=' + encodeURIComponent(code) +
-      '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
+    ? 'intent://s/?c=' + encodeURIComponent(code) + extra +
+      '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
     : '#get';
 
   }

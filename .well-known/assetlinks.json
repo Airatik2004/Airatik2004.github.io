@@ -1,8 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "ru.sudoky",
-    "sha256_cert_fingerprints": ["1C:80:C5:E4:2B:4D:05:EA:20:5C:02:5F:BD:BC:F7:AD:6B:D9:BE:1C:32:55:49:D9:5F:7F:A7:59:FA:86:73:29"]
-  }
-}]
