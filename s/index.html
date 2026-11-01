@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Судоку — вам прислали судоку</title>
-<meta name="description" content="Реши судоку, которой с тобой поделились, в игре «Судоку» без рекламы.">
+<title>Судоку · Sudoky</title>
+<meta name="description" content="Судоку без рекламы: 7 уровней, оценка по шкале SE, тренировка приёмов. Sudoku without ads: 7 levels, SE ratings, technique practice.">
 <style>
-  :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3F51B5; --onaccent:#fff; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#14151c; --card:#1f2029; --text:#ececf2; --dim:#9a9cb0; --accent:#9FA8DA; --onaccent:#14151c; } }
+  :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3D5AFE; --onaccent:#fff; --line:#E1E4EE; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14151c; --card:#1f2029; --text:#ececf2; --dim:#9a9cb0; --accent:#8193FF; --onaccent:#14151c; --line:#2A2D3B; } }
   * { box-sizing:border-box; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text);
          font:16px/1.45 system-ui, -apple-system, Roboto, sans-serif; padding:20px; }
@@ -21,53 +21,124 @@
                   text-decoration:none; cursor:pointer; margin-top:10px; }
   .main { background:var(--accent); color:var(--onaccent); }
   .alt { background:transparent; color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
-  .code { margin-top:22px; padding-top:18px; border-top:1px solid color-mix(in srgb, var(--dim) 30%, transparent); }
-  .code small { color:var(--dim); display:block; margin-bottom:8px; }
-  .code b { display:block; word-break:break-all; font:600 15px ui-monospace, monospace; }
+  .get { margin-top:22px; padding-top:18px; border-top:1px solid var(--line); }
+  .get h2 { font-size:15px; margin:0 0 4px; }
+  small { color:var(--dim); display:block; margin-top:8px; font-size:13px; }
+  .code b { display:block; word-break:break-all; font:600 15px ui-monospace, monospace; margin-top:6px; }
+  .lang { margin-top:18px; font-size:13px; }
+  .lang a { color:var(--dim); }
   [hidden] { display:none !important; }
 </style>
 </head>
 <body>
 <main class="card">
   <div class="logo"><span>5</span><span></span><span>3</span><span></span><span>7</span><span></span><span>1</span><span></span><span>9</span></div>
-  <h1 id="title">Вам прислали судоку</h1>
-  <p id="lead">Откройте её в игре «Судоку». Если игры ещё нет — установите её из RuStore, это бесплатно и без рекламы.</p>
-  <a class="btn main" id="open" href="#">Открыть в игре</a>
-  <a class="btn alt" id="store" href="https://www.rustore.ru/catalog/app/ru.sudoky">Скачать в RuStore</a>
-  <div class="code" id="codeBox" hidden>
-    <small>Кнопка не открывает игру? Обновите её в RuStore. В версии 1.0 код вводится вручную: «Своё судоку» → «Решить по коду».</small>
-    <b id="code"></b>
-    <button class="alt" id="copy">Скопировать код</button>
+  <h1 id="title"></h1>
+  <p id="lead"></p>
+  <a class="btn main" id="open" href="#" hidden></a>
+  <div class="get" id="get">
+    <h2 id="getTitle"></h2>
+    <small id="getNote"></small>
+    <!-- stores: add new ones here, in the STORES list below -->
+    <div id="stores"></div>
+    <small id="apkNote"></small>
   </div>
+  <div class="get code" id="codeBox" hidden>
+    <small id="codeNote"></small>
+    <b id="code"></b>
+    <button class="alt" id="copy"></button>
+  </div>
+  <div class="lang"><a href="#" id="switch"></a></div>
 </main>
 <script>
 (function () {
-  var STORE = 'https://www.rustore.ru/catalog/app/ru.sudoky';
-  var m = /[?&]c=([^&#]+)/.exec(location.search) || /^#(.+)$/.exec(location.hash);
+  var APK = 'https://airatik2004.github.io/sudoky.apk';
+  var RUSTORE = 'https://www.rustore.ru/catalog/app/ru.sudoky';
+  var TXT = {
+    ru: {
+      titleShared: 'Вам прислали судоку', titleChallenge: 'Побей моё время!', titlePlain: 'Судоку',
+      lead: 'Откройте её в игре «Судоку». Если игры ещё нет — установите её, это бесплатно и без рекламы.',
+      leadPlain: 'Судоку без рекламы: 7 уровней, оценка сложности по шкале SE, тренировка приёмов, своё судоку.',
+      open: 'Открыть в игре', getTitle: 'Установить игру', getNote: 'Выберите, откуда:',
+      apk: 'Скачать APK (GitHub)', rustore: 'RuStore',
+      apkNote: 'APK — файл для установки напрямую: Android спросит разрешение на установку из этого источника.',
+      noapp: 'Похоже, игра ещё не установлена — установите её ниже, потом снова нажмите на ссылку.',
+      codeNote: 'В версии 1.0 код вводится вручную: «Своё судоку» → «Решить по коду».',
+      copy: 'Скопировать код', copied: 'Скопировано ✓', other: 'English'
+    },
+    en: {
+      titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
+      lead: 'Open it in the Sudoky game. If you don\'t have it yet, install it — it is free and has no ads.',
+      leadPlain: 'Sudoku without ads: 7 levels, difficulty on the SE scale, technique practice, your own puzzles.',
+      open: 'Open in the game', getTitle: 'Get the game', getNote: 'Choose where from:',
+      apk: 'Download the APK (GitHub)', rustore: 'RuStore (Russia)',
+      apkNote: 'The APK is a file to install directly: Android will ask you to allow installing from this source.',
+      noapp: 'It looks like the game is not installed yet — install it below, then tap the link again.',
+      codeNote: '', copy: 'Copy the code', copied: 'Copied ✓', other: 'Русский'
+    }
+  };
+  var q = location.search;
+  var m = /[?&]c=([^&#]+)/.exec(q) || /^#(.+)$/.exec(location.hash);
   var code = m ? decodeURIComponent(m[1]).trim() : '';
   if (!/^[1-8]-[0-9A-Za-z]{12,60}(~\d{1,6}\.\d{1,3}\.\d{1,3})?$/.test(code)) code = '';
-  var open = document.getElementById('open');
+  var forced = /[?&]lang=(ru|en)/.exec(q);
+  var nav = (navigator.language || 'en').toLowerCase().slice(0, 2);
+  var lang = forced ? forced[1] : (['ru', 'uk', 'be', 'kk'].indexOf(nav) >= 0 ? 'ru' : 'en');
+  var t = TXT[lang];
+  document.documentElement.lang = lang;
+  var $ = function (id) { return document.getElementById(id); };
+
+  // where to get the game: Russian visitors see RuStore first, others the APK first
+  var STORES = [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }];
+  if (lang === 'ru') STORES.reverse();
+  STORES.forEach(function (s, i) {
+    var a = document.createElement('a');
+    a.className = 'btn ' + (i === 0 && !code ? 'main' : 'alt');
+    a.href = s.url; a.textContent = t[s.key];
+    if (s.key === 'apk') a.setAttribute('download', 'Sudoky.apk');
+    $('stores').appendChild(a);
+  });
+  $('getTitle').textContent = t.getTitle;
+  $('getNote').textContent = t.getNote;
+  $('apkNote').textContent = t.apkNote;
+
+  var self = location.origin + location.pathname;
+  var other = lang === 'ru' ? 'en' : 'ru';
+  $('switch').textContent = t.other;
+  $('switch').href = self + '?' + (code ? 'c=' + encodeURIComponent(code) + '&' : '') + 'lang=' + other;
+
   if (!code) {
-    document.getElementById('title').textContent = 'Судоку';
-    document.getElementById('lead').textContent = 'Игра «Судоку» без рекламы — в RuStore.';
-    open.hidden = true;
+    $('title').textContent = t.titlePlain;
+    $('lead').textContent = t.leadPlain;
+    document.title = t.titlePlain;
     return;
   }
-  if (code.indexOf('~') > 0) document.getElementById('title').textContent = 'Побей моё время!';
-  document.getElementById('code').textContent = code;
-  document.getElementById('codeBox').hidden = false;
-  var isAndroid = /Android/i.test(navigator.userAgent);
-  open.href = isAndroid
+  $('title').textContent = code.indexOf('~') > 0 ? t.titleChallenge : t.titleShared;
+  $('lead').textContent = /[?&]noapp=1/.test(q) ? t.noapp : t.lead;
+  var open = $('open');
+  open.hidden = false;
+  open.textContent = t.open;
+  // Android: open the game by its package; without the game Chrome comes back here with noapp=1
+  var back = self + '?c=' + encodeURIComponent(code) + '&noapp=1' + (forced ? '&lang=' + lang : '');
+  open.href = /Android/i.test(navigator.userAgent)
     ? 'intent://airatik2004.github.io/s/?c=' + encodeURIComponent(code) +
-      '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(STORE) + ';end'
-    : STORE;
-  var copy = document.getElementById('copy');
-  copy.onclick = function () {
-    var done = function () { copy.textContent = 'Скопировано ✓'; };
-    if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, function () {});
-    else { var r = document.createRange(); r.selectNode(document.getElementById('code'));
-           getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); done(); }
-  };
+      '#Intent;scheme=https;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
+    : '#get';
+
+  // version 1.0 can't open links: its users type the code by hand
+  if (t.codeNote) {
+    $('codeBox').hidden = false;
+    $('codeNote').textContent = t.codeNote;
+    $('code').textContent = code;
+    var copy = $('copy');
+    copy.textContent = t.copy;
+    copy.onclick = function () {
+      var done = function () { copy.textContent = t.copied; };
+      if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, function () {});
+      else { var r = document.createRange(); r.selectNode($('code'));
+             getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); done(); }
+    };
+  }
 })();
 </script>
 </body>
