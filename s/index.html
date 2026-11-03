@@ -120,6 +120,7 @@ var TX = {
     errors: 'Ошибок: {1}', hints: 'Подсказок: {1}', goal: 'Цель {1}', pauseTitle: 'Пауза', resume: '▶  Продолжить',
     solved: 'Решено', counts: 'Ошибок: {1} · Подсказок: {2}', seLine: 'Сложность по шкале SE ≈ {1}',
     chFriend: '{4}: {1} · ошибок {2} · подсказок {3}', faster: 'Вы быстрее на {1}!', slower: '{2} быстрее на {1}', tie: 'Ровно столько же!',
+    afterApk: 'Когда установите игру, вернитесь сюда и нажмите «Открыть в игре» — партия продолжится там с этого места.',
     onlyApp: 'Это есть только в игре — она на Android.', onlyAndroid: 'Игра есть только на Android: скачайте APK на телефон.',
     drawOnlyRed: 'Линии рисуются в режиме «Выделение»: сначала подержите кнопку «Медленный» / «Быстрый»',
     confirmWrite: 'Записать {1} — все клетки с одной заметкой станут ответами?', yes: 'Записать', cancel: 'Отмена',
@@ -150,6 +151,7 @@ var TX = {
     errors: 'Mistakes: {1}', hints: 'Hints: {1}', goal: 'Goal {1}', pauseTitle: 'Pause', resume: '▶  Resume',
     solved: 'Solved', counts: 'Mistakes: {1} · Hints: {2}', seLine: 'Difficulty on the SE scale ≈ {1}',
     chFriend: '{4}: {1} · mistakes {2} · hints {3}', faster: 'You are faster by {1}!', slower: '{2} is faster by {1}', tie: 'Exactly the same!',
+    afterApk: 'Once the game is installed, come back here and tap «Open in the game» — the game will go on there from this point.',
     onlyApp: 'This is only in the game — it is on Android.', onlyAndroid: 'The game is only on Android: download the APK to your phone.',
     drawOnlyRed: 'Lines are drawn in «Select» mode: hold the «Slow» / «Quick» button first',
     confirmWrite: 'Write {1} — all cells with one note become answers?', yes: 'Write', cancel: 'Cancel',
@@ -702,7 +704,11 @@ function refreshControls() {
   $('bUndo').className = 'pill' + (undoS.length && !g.status ? '' : ' off');
   $('bRedo').className = 'pill' + (redoS.length && !g.status ? '' : ' off');
   $('bErase').className = 'pill' + (ui.eraser ? ' filled' : '');
-  $('bErase').innerHTML = '⌫ ' + t.erase;
+  // the eraser glyph as on the game's button: a tilted rounded block, its left part filled
+  $('bErase').innerHTML = '<svg width="20" height="20" viewBox="-10 -10 20 20" style="margin-right:5px;flex:none"><g transform="rotate(-40)">' +
+    '<clipPath id="ec"><rect x="-7.5" y="-4" width="6.3" height="8"/></clipPath>' +
+    '<rect x="-7.5" y="-4" width="15" height="8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+    '<rect x="-7.5" y="-4" width="15" height="8" rx="2.2" fill="currentColor" clip-path="url(#ec)"/></g></svg>' + t.erase;
   var e = f(t.errors, g.errors), h2 = f(t.hints, g.hints);
   $('errs').innerHTML = (g.errors > 0 ? '<span style="color:var(--error)">' + e + '</span>' : e) + ' · ' + h2;
 }
@@ -765,7 +771,7 @@ function progressParam() {
   if (!started || g.status) return '';
   var v = '', m = '';
   for (var c = 0; c < 81; c++) { var x = g.value[c]; v += g.wrong[c] ? String.fromCharCode(96 + x) : x; m += ('00' + (g.center[c] & 0x3FE).toString(16)).slice(-3); }
-  return [Math.round(g.elapsed), g.errors, g.hints, v, m, g.corner.join('_'), g.color.join('_')].join('~');
+  return [Math.round(g.elapsed), g.errors, g.hints, v, m, g.corner.join('_'), g.color.join('_'), g.links.join('_')].join('~');
 }
 function openInGame() {
   if (!ANDROID) { tip(t.onlyAndroid); return; }
@@ -776,11 +782,11 @@ function openInGame() {
   location.href = 'intent://s/?c=' + encodeURIComponent(code) + extra + '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end';
 }
 function rustore() { if (!ANDROID) { tip(t.onlyAndroid); return; } location.href = RUSTORE; }
-function apk() { var a = document.createElement('a'); a.href = APK; a.download = 'Sudoky.apk'; document.body.appendChild(a); a.click(); a.remove(); }
+function apk() { if (started && !g.status) tip(t.afterApk, 9000); var a = document.createElement('a'); a.href = APK; a.download = 'Sudoky.apk'; document.body.appendChild(a); a.click(); a.remove(); }
 
 // ------------------------------------------------------------------ cards: start, pause, solved, tip
 var tipTimer = null;
-function tip(msg) { var x = $('tip'); x.textContent = msg; x.style.display = 'block'; clearTimeout(tipTimer); tipTimer = setTimeout(function () { x.style.display = 'none'; }, 2600); x.onclick = function () { x.style.display = 'none'; }; }
+function tip(msg, ms) { var x = $('tip'); x.textContent = msg; x.style.display = 'block'; clearTimeout(tipTimer); tipTimer = setTimeout(function () { x.style.display = 'none'; }, ms || 2600); x.onclick = function () { x.style.display = 'none'; }; }
 function levelName() { return t.levels[g.level] || '?'; }
 function friendName() { return nick || t.friend; }
 /** The friend's name for the page: the developer's nickname (signed link) in gold. */
