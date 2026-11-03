@@ -83,7 +83,7 @@
   .note { text-align:center; font-size:12px; color:var(--dim); margin-top:8px; }
   .plates { width:100%; max-width:400px; margin-top:14px; display:flex; gap:8px; } .plates .pill { height:50px; flex:1; font-size:14.5px; }
   #start { padding:4px 10px 10px; }
-  #app.starting .acts, #app.starting .pad, #app.starting .tabs { display:none; }
+  #app.starting .acts, #app.starting .pad, #app.starting .tabs, #app.starting .row2 { display:none; }
   #start .card { max-width:none; }
   #tip { position:absolute; left:20px; right:20px; bottom:200px; z-index:30; background:var(--surface); border:1.5px solid var(--accent);
          border-radius:16px; padding:12px 16px; text-align:center; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.25); display:none; }
@@ -370,7 +370,7 @@ function draw() {
   cx.setTransform(DPR, 0, 0, DPR, 0, 0); cx.clearRect(0, 0, W, H);
   var thick = 2.2, strip = 26, size = Math.min(W, H - strip) - thick;
   cs = size / 9; ox = (W - size) / 2; oy = strip + (H - strip - size) / 2;
-  drawStatus();
+  if (started) drawStatus();   // the mode icon and ⚡ only once the game is on
   var selVal = ui.sel >= 0 ? g.value[ui.sel] : 0;
   if (ui.qd && ui.mode !== MODE_COLOR && ui.quick) selVal = ui.qd;
   if (ui.peek) selVal = ui.peek;
