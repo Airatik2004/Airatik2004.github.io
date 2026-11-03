@@ -509,11 +509,11 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                 // states: on[c] = «if s is not d, c is d» (reached by a strong link); off[c] = «… c is not d»
                 let on = new Array(81).fill(false), off = new Array(81).fill(false);
                 let dOn = new Array(81).fill(0), dOff = new Array(81).fill(0);
-                let qu = [];   // used as a stack, as Java's ArrayDeque push/poll
+                let qu = [], qh = 0;   // a FIFO queue, as Java's ArrayDeque add/poll
                 off[s] = true;
                 qu.push(s);
-                while (qu.length > 0) {
-                    let x = qu.pop();
+                while (qh < qu.length) {
+                    let x = qu[qh++];
                     let isOff = x >= 0;
                     let c = isOff ? x : -x - 1;
                     if (isOff) {
@@ -594,7 +594,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                 if (!dup) out[k++] = on;
             }
         }
-        return java.util.Arrays.copyOf(out, k);
+        return out.slice(0, k);
     }
 
     /** Weak partners: same digit in a peer cell, or another digit of the same cell. */
@@ -604,7 +604,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         let k = 0;
         for (let o = 1; o <= 9; o++) if (o != d && (cand[c] & (1 << o)) != 0) out[k++] = c * 10 + o;
         for (const q of PEERS[c]) if (val[q] == 0 && (cand[q] & (1 << d)) != 0) out[k++] = q * 10 + d;
-        return java.util.Arrays.copyOf(out, k);
+        return out.slice(0, k);
     }
 
     function weakLinked(c, z, node) {
@@ -640,12 +640,12 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                 // off: «this cell is not d», on: «this cell is d» — node = cell*10+digit
                 let on = new Array(810).fill(false), off = new Array(810).fill(false);
                 let cells = new Array(810).fill(0);
-                let qu = [];   // used as a stack, as Java's ArrayDeque push/poll
+                let qu = [], qh = 0;   // a FIFO queue, as Java's ArrayDeque add/poll
                 off[a * 10 + x] = true;
                 cells[a * 10 + x] = 1;
                 qu.push(a * 10 + x);
-                while (qu.length > 0) {
-                    let st = qu.poll();
+                while (qh < qu.length) {
+                    let st = qu[qh++];
                     let isOff = st < 810;
                     let nd = isOff ? st : st - 810, c = Math.floor(nd / 10), d = nd % 10;
                     if (isOff) {
@@ -1056,9 +1056,111 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return false;
     }
 
+
+    // ------------------------------------------------------------ grade and SE rating (as Sudoku.java)
+    function grade(puzzle) {
+        var val = puzzle.slice(), cand = new Array(81);
+        for (var c = 0; c < 81; c++) cand[c] = val[c] === 0 ? 0x3FE : 0;
+        for (c = 0; c < 81; c++) if (val[c] !== 0) for (var p of PEERS[c]) cand[p] &= ~(1 << val[c]);
+        var level = T_HIDDEN;
+        while (true) {
+            if (contradiction(val, cand)) return T_INVALID;
+            var empty = 0;
+            for (c = 0; c < 81; c++) if (val[c] === 0) empty++;
+            if (empty === 0) return level;
+            if (hiddenSingles(val, cand) > 0) continue;
+            if (nakedSingles(val, cand) > 0) { level = Math.max(level, T_NAKED); continue; }
+            var w = step(val, cand);
+            if (w > 0) { level = Math.max(level, TIER_OF[w]); continue; }
+            return T_HARDER;
+        }
+    }
+
+    var SE_BEYOND = 70, SE_DEEP = 95, SE_NESTED = 110, SE_EXTREME = 120;
+    var deadline = 0, lastLen = 0, lastSteps = 0;
+    function late() { return deadline > 0 && Date.now() > deadline; }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+    function beyond(r, n) {
+        if (n[2] > 0) return Math.max(r, clamp(111 + Math.log(n[2]) * 4, 111, 119));
+        if (n[1] > 0) return Math.max(r, clamp(93 + Math.log(n[1]) * 6.5, 96, 109));
+        if (n[0] > 0) return Math.max(r, clamp(66 + Math.log(n[0]) * 8.5, 71, 94));
+        return r;
+    }
+    function bound(n, depth) {
+        var d = n[2] > 0 ? 2 : n[1] > 0 ? Math.max(1, depth) : depth;
+        return d === 2 ? SE_NESTED : d === 1 ? SE_DEEP : SE_BEYOND;
+    }
+    function breaks(val, cand, depth) {
+        var steps = 0;
+        while (true) {
+            if (contradiction(val, cand)) return steps;
+            var n = hiddenSingles(val, cand);
+            if (n === 0) n = nakedSingles(val, cand);
+            if (n > 0) { steps += n; continue; }
+            if (depth === 0) return -1;
+            steps++;
+            if (step(val, cand) > 0) continue;
+            if (depth === 2 && assume(val, cand, 0)) continue;
+            return -1;
+        }
+    }
+    function assume(val, cand, depth) {
+        var bestC = -1, bestD = 0, best = Infinity;
+        for (var c = 0; c < 81; c++) {
+            if (val[c] !== 0) continue;
+            for (var d = 1; d <= 9; d++) {
+                if ((cand[c] & (1 << d)) === 0) continue;
+                if (late()) return false;
+                var v = val.slice(), k = cand.slice();
+                place(v, k, c, d);
+                var len = breaks(v, k, depth);
+                if (len >= 0 && len < best) { best = len; bestC = c; bestD = d; }
+                if (depth > 0 && bestC >= 0) break;
+            }
+            if (depth > 0 && bestC >= 0) break;
+        }
+        if (bestC < 0) return false;
+        cand[bestC] &= ~(1 << bestD);
+        lastLen = best;
+        return true;
+    }
+    /** SE in tenths (70 / 95 / 110 — lower bounds when out of time); lastSteps — key moves. */
+    function seRating(puzzle, millis) {
+        deadline = millis > 0 ? Date.now() + millis : 0;
+        try { return seRun(puzzle); } finally { deadline = 0; }
+    }
+    function seRun(puzzle) {
+        var steps = new Array(10).fill(0); steps[9] = T_HIDDEN;
+        var val = puzzle.slice(), cand = new Array(81);
+        for (var c = 0; c < 81; c++) cand[c] = val[c] === 0 ? 0x3FE : 0;
+        for (c = 0; c < 81; c++) if (val[c] !== 0) for (var p of PEERS[c]) cand[p] &= ~(1 << val[c]);
+        var r = 12, n = [0, 0, 0];
+        var fin = function (x) { lastSteps = steps[steps[9]]; return x; };
+        while (true) {
+            if (contradiction(val, cand)) return fin(beyond(r, n));
+            var empty = false;
+            for (c = 0; c < 81; c++) if (val[c] === 0) { empty = true; break; }
+            if (!empty) return fin(beyond(r, n));
+            if (hiddenSinglesIn(val, cand, 18, 27) > 0) { r = Math.max(r, 12); continue; }
+            if (hiddenSingles(val, cand) > 0) { r = Math.max(r, 15); continue; }
+            if (nakedSingles(val, cand) > 0) { r = Math.max(r, 23); steps[9] = Math.max(steps[9], T_NAKED); continue; }
+            var w = step(val, cand);
+            if (w > 0) { r = Math.max(r, stepSe(w)); steps[TIER_OF[w]]++; steps[9] = Math.max(steps[9], TIER_OF[w]); continue; }
+            var done = false;
+            for (var depth = 0; depth < 3 && !done; depth++) {
+                if (late()) return fin(bound(n, depth));
+                if (assume(val, cand, depth)) { n[depth]++; done = true; }
+            }
+            if (late()) return fin(bound(n, 2));
+            if (!done) return fin(SE_EXTREME);
+            steps[T_HARDER]++;
+            steps[9] = T_HARDER;
+        }
+    }
+
     /**
      * Steps tried for a training on technique k, in order: everything simpler first, so the task
      * really needs k. Rare techniques get a shorter list, or the search would take too long:
      * the finned X-wing only has to beat the basic steps and the plain X-wing, BUG+1 nothing.
-     */window.SX = {hint: hint, countSolutions: countSolutions, used: function () { return HINT_USED[0]; }, T_HIDDEN: T_HIDDEN, T_NAKED: T_NAKED, T_HARDER: T_HARDER, PEERS: PEERS, UNITS: UNITS, CELL_UNITS: CELL_UNITS, isPeer: isPeer};
+     */window.SX = {hint: hint, grade: grade, seRating: seRating, steps: function () { return lastSteps; }, LEVELS: 7, countSolutions: countSolutions, used: function () { return HINT_USED[0]; }, T_HIDDEN: T_HIDDEN, T_NAKED: T_NAKED, T_HARDER: T_HARDER, PEERS: PEERS, UNITS: UNITS, CELL_UNITS: CELL_UNITS, isPeer: isPeer};
 })();

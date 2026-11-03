@@ -184,8 +184,7 @@ var forced = /[?&]lang=(ru|en)/.exec(q);
 var nav = (navigator.language || 'en').toLowerCase().slice(0, 2);
 var nm = /[?&]n=([^&#]+)/.exec(q), nick = '';
 try { nick = nm ? decodeURIComponent(nm[1].replace(/\+/g, ' ')).replace(/[;~,|<>&"]/g, ' ').trim().slice(0, 20) : ''; } catch (e) { nick = ''; }
-var seM = /[?&]se=(\d{1,3})/.exec(q), dM = /[?&]d=(\d{1,2})/.exec(q);
-var SE = seM ? +seM[1] : -1, DEN = dM ? +dM[1] : 0;
+var SE = -1, DEN = 0;   // worked out here: nothing the puzzle itself tells is taken from the link
 var gM = /[?&]g=([A-Za-z0-9_-]{80,90})/.exec(q), GSIG = gM ? gM[1] : '', goldNick = false;
 lang = forced ? forced[1] : (['ru', 'uk', 'be', 'kk'].indexOf(nav) >= 0 ? 'ru' : 'en');
 t = TX[lang];
@@ -200,13 +199,16 @@ function decode(c) {
   if (n !== 1n) return null;
   return { level: parseInt(c[0], 10) - 1, cells: p, res: res, plain: c };
 }
-function seText(r) { return r >= 105 ? '10+' : r >= 90 ? '9+' : r >= 80 ? '8+' : r === 70 ? '7+' : Math.floor(r / 10) + t.dec + (r % 10); }
+function seText(r) { if (r >= 120) return '12+'; var s = Math.floor(r / 10) + (r % 10 ? t.dec + (r % 10) : '');
+  return r === 70 || r === 95 || r === 110 ? s + '+' : Math.floor(r / 10) + t.dec + (r % 10); }
 
 var D = null;
 try { D = code ? decode(code) : null; } catch (e) { D = null; }
 var SOL = null;
 if (D) { SOL = new Array(81).fill(0); if (SX.countSolutions(D.cells, 2, SOL) !== 1) { D = null; } }
 if (!D) { plainPage(); return; }
+var GR = SX.grade(D.cells);
+if (D.level < 7 && GR >= 1 && GR <= 7) D.level = GR - 1;   // the level by the puzzle, not by the link
 
 // ------------------------------------------------------------------ theme (as in the game)
 var dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
@@ -776,7 +778,7 @@ function progressParam() {
 function openInGame() {
   if (!ANDROID) { tip(t.onlyAndroid); return; }
   stopClock(); save();
-  var extra = (SE > 0 ? '&se=' + SE : '') + (DEN > 0 ? '&d=' + DEN : '') + (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '');
+  var extra = (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '');
   var p = progressParam(); if (p) extra += '&p=' + encodeURIComponent(p);
   var back = location.origin + location.pathname + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '') + '&noapp=1&lang=' + lang;
   location.href = 'intent://s/?c=' + encodeURIComponent(code) + extra + '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end';
@@ -897,6 +899,12 @@ document.addEventListener('keyup', function (e) {
 });
 
 staticTexts(); updateLevelLine(); resize(); refresh(); showStart();
+
+// the rating: after the first paint, at most 3 seconds (past that — the lower bound, as in the game)
+setTimeout(function () {
+  SE = SX.seRating(D.cells, 3000); DEN = SX.steps();
+  updateLevelLine(); var st = $('start'); if (st && !started) { st.remove(); showStart(); }
+}, 60);
 
 // a link from the developer build: its signature (ECDSA P-256 over «sudoky|code|nickname») — the nickname then shows in gold
 (function () {
