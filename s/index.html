@@ -784,10 +784,9 @@ function friendName() { return nick || t.friend; }
 /** The friend's name for the page: the developer's nickname (signed link) in gold. */
 function fname() { return goldNick ? '<b style="color:' + C.gold + '">' + esc(friendName()) + '</b>' : esc(friendName()); }
 function updateLevelLine() {
+  // the level and the depth, the goal on its own line below (as in the game)
   var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
-  if (g.chMs >= 0) s += ' · ' + f(t.goal, fmt(g.chMs));
-  // the parts don't break inside: «SE 2,6 (1)», «цель 03:25» stay whole on a line
-  $('lvl').textContent = s.split(' · ').map(function (x) { return x.replace(/ /g, '\u00a0'); }).join(' · ');
+  $('lvl').innerHTML = esc(s) + (g.chMs >= 0 ? '<br>' + esc(f(t.goal, fmt(g.chMs))) : '');
 }
 function infoRows() {
   var r = '';
