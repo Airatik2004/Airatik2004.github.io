@@ -229,7 +229,7 @@ var g = {
   chMs: D.res ? D.res[0] * 1000 : -1, chErr: D.res ? D.res[1] : 0, chHints: D.res ? D.res[2] : 0
 };
 var undoS = [], redoS = [], batch = false, batchPushed = false;
-var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
+var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, redCur: -1, fresh: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
   eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0, preRed: null };
 var pendingHint = null, hintNudge = false, hintCell = -1, hintUnit = -1;
 var started = false, paused = false, running = false, lastTick = 0;
@@ -381,15 +381,16 @@ function draw() {
   if (ui.qd && ui.mode !== MODE_COLOR && ui.quick) selVal = ui.qd;
   if (ui.peek) selVal = ui.peek;
   var pc = ui.multi ? peekCell : -1; if (pc >= 0) selVal = g.value[pc];
-  var quickActive = ui.quick && ui.qd !== 0, lineCell = quickActive ? ui.anchor : ui.sel;
+  else if (ui.multi && !ui.peek && ui.redCur >= 0) selVal = g.value[ui.redCur];   // red mode: the cursor cell is still shown
+  var quickActive = ui.quick && ui.qd !== 0, lineCell = ui.multi ? (ui.redCur >= 0 ? ui.redCur : -1) : quickActive ? ui.anchor : ui.sel;
   for (var i = 0; i < 81; i++) {
     var bg = C.surface;
     if (ui.multi && ui.msel[i]) bg = C.selected;
-    else if (!ui.multi && i === lineCell) bg = C.selected;
+    else if (pc < 0 && i === lineCell) bg = C.selected;
     else if (i === pc) bg = C.selected;
     else if (selVal && g.value[i] === selVal) bg = C.sameDigit;
-    else if (!ui.multi && lineCell >= 0 && SX.isPeer(lineCell, i)) bg = C.unit;
     else if (pc >= 0 && SX.isPeer(pc, i)) bg = C.unit;
+    else if (pc < 0 && lineCell >= 0 && SX.isPeer(lineCell, i)) bg = C.unit;
     cx.fillStyle = bg; cx.fillRect(ox + (i % 9) * cs, oy + Math.floor(i / 9) * cs, cs, cs);
   }
   for (i = 0; i < 81; i++) {
@@ -517,6 +518,7 @@ cv.addEventListener('pointerdown', function (e) {
     // holding a digit on the board (without moving): shown as in the other modes, nothing gets selected
     clearTimeout(holdTimer); if (peekCell >= 0) peekCell = -1;
     if (c < 0) { draw(); return; }
+    if (ui.fresh) { ui.fresh = false; ui.msel.fill(false); }   // something was entered: a new selection
     holdCell = c;
     if (g.value[c]) { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 300); }
     addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return;
@@ -618,13 +620,16 @@ function speedTap() {
 function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
 function enterRed() {
   ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
-  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
+  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
 }
 function leaveRed(toBlue) {
   peekCell = -1; ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
   ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
   if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
-  ui.msel.fill(false); refresh();
+  ui.redCur = -1;
+  // into the blue mode with a digit cell under the cursor: that digit is picked, as by a tap from the white mode
+  var sc = ui.sel; if (toBlue && !ui.qd && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
+  ui.msel.fill(false); ui.fresh = false; refresh();
 }
 function multiCells() { var r = []; for (var c = 0; c < 81; c++) if (ui.msel[c]) r.push(c); return r; }
 function commonColor() { var cs2 = multiCells(); if (!cs2.length) return 0; for (var k = 1; k <= 3; k++) if (cs2.every(function (c) { return hasColor(c, k); })) return k; return 0; }
@@ -644,6 +649,7 @@ function multiInput(d) {
   if (g.status) { onWon(); return; }
   if (lastOk >= 0) celebrate(lastOk, d);
   if (mistake) { onMistake(); return; }
+  if (changed) ui.fresh = true;   // the next touch starts a new selection
   if (changed) afterChange();
 }
 function eraserTap() {
