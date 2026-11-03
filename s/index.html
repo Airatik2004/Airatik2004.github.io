@@ -518,7 +518,8 @@ cv.addEventListener('pointerdown', function (e) {
     // holding a digit on the board (without moving): shown as in the other modes, nothing gets selected
     clearTimeout(holdTimer);
     if (c < 0) { draw(); return; }
-    ui.redCur = -1;   // a touch on the board: the cursor's lines stop being shown; a held digit stays lit while selecting
+    // a touch on the board: the cursor's lines stop being shown, its digit stays lit while selecting (as a held key's)
+    if (ui.redCur >= 0) { if (!ui.peek && g.value[ui.redCur] && !g.wrong[ui.redCur]) ui.peek = g.value[ui.redCur]; ui.redCur = -1; }
     if (ui.fresh) { ui.fresh = false; ui.msel.fill(false); }   // something was entered: a new selection
     holdCell = c;
     if (g.value[c]) { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 300); }
