@@ -80,6 +80,8 @@
   .head { display:flex; align-items:center; gap:10px; }
   .head img { width:40px; height:40px; border-radius:11px; }
   .head h2 { flex:1; }
+  .head.c { position:relative; justify-content:center; } .head.c h2 { flex:none; }
+  .head.c .lang { position:absolute; right:0; top:50%; transform:translateY(-50%); }   /* the title stays in the very middle */
   .note { text-align:center; font-size:12px; color:var(--dim); margin-top:8px; }
   .plates { width:100%; max-width:400px; margin-top:14px; display:flex; gap:8px; } .plates .pill { height:50px; flex:1; font-size:14.5px; }
   #start { padding:4px 10px 10px; }
@@ -831,7 +833,7 @@ function showPause() {
   var o = document.createElement('div'); o.className = 'ov pause';
   var draw1 = function () {
     var ch = g.chMs >= 0 ? '<div class="info" style="color:var(--text);font-weight:600;margin-top:6px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, fname()) + '</div>' : '';
-    o.innerHTML = '<div class="card" style="border:1.5px solid var(--line)"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:30px">' + t.pauseTitle + '</h2>' + langBtn() + '</div>' +
+    o.innerHTML = '<div class="card" style="border:1.5px solid var(--line)"><div class="head c"><h2 style="text-align:center;font-size:30px">' + t.pauseTitle + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="margin-top:4px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' + (SE > 0 ? '<div class="info">' + f(t.seLine, seText(SE)) + '</div>' : '') + ch +
       '<div class="btns" style="margin-top:18px"><button class="pill filled" id="pRes">' + t.resume + '</button></div></div>' +
       '<div class="plates"><button class="pill" id="pApk">' + t.apk + '</button><button class="pill" id="pRu">' + t.rustore + '</button></div>' +
@@ -851,7 +853,7 @@ function onWon() {
       var verdict = diff < 0 ? f(t.faster, fmt(-diff * 1000)) : diff > 0 ? f(t.slower, fmt(diff * 1000), fname()) : t.tie;
       ch = '<div class="info" style="color:' + (diff <= 0 ? 'var(--ok)' : 'var(--text)') + ';font-weight:600;margin-top:8px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, fname()) + '<br>' + verdict + '</div>';
     }
-    o.innerHTML = '<div class="card"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:32px;color:var(--accent)">' + t.solved + '</h2>' + langBtn() + '</div>' +
+    o.innerHTML = '<div class="card"><div class="head c"><h2 style="text-align:center;font-size:32px;color:var(--accent)">' + t.solved + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="color:var(--text);font-size:17px;margin-top:6px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' +
       '<div class="info">' + f(t.counts, g.errors, g.hints) + (SE > 0 ? '<br>' + f(t.seLine, seText(SE)) : '') + '</div>' + ch +
       '<div class="btns"><button class="pill filled" id="wOpen">' + t.open + '</button><div class="two"><button class="pill" id="wApk">' + t.apk + '</button>' +
