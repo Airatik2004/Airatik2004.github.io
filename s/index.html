@@ -373,13 +373,16 @@ function draw() {
   var selVal = ui.sel >= 0 ? g.value[ui.sel] : 0;
   if (ui.qd && ui.mode !== MODE_COLOR && ui.quick) selVal = ui.qd;
   if (ui.peek) selVal = ui.peek;
+  var pc = ui.multi ? peekCell : -1; if (pc >= 0) selVal = g.value[pc];
   var quickActive = ui.quick && ui.qd !== 0, lineCell = quickActive ? ui.anchor : ui.sel;
   for (var i = 0; i < 81; i++) {
     var bg = C.surface;
     if (ui.multi && ui.msel[i]) bg = C.selected;
     else if (!ui.multi && i === lineCell) bg = C.selected;
+    else if (i === pc) bg = C.selected;
     else if (selVal && g.value[i] === selVal) bg = C.sameDigit;
     else if (!ui.multi && lineCell >= 0 && SX.isPeer(lineCell, i)) bg = C.unit;
+    else if (pc >= 0 && SX.isPeer(pc, i)) bg = C.unit;
     cx.fillStyle = bg; cx.fillRect(ox + (i % 9) * cs, oy + Math.floor(i / 9) * cs, cs, cs);
   }
   for (i = 0; i < 81; i++) {
@@ -494,7 +497,7 @@ function linkIcon(c2, x, y, s, color) {
 }
 
 // ------------------------------------------------------------------ touch on the board (finger, or the left mouse button)
-var down = false;
+var down = false, peekCell = -1, holdCell = -1, holdPrev = false, holdTimer = null;
 function cellAt(e) { var r = cv.getBoundingClientRect(), col = Math.floor((e.clientX - r.left - ox) / cs), row = Math.floor((e.clientY - r.top - oy) / cs);
   return col >= 0 && col < 9 && row >= 0 && row < 9 ? row * 9 + col : -1; }
 cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -503,7 +506,14 @@ cv.addEventListener('pointerdown', function (e) {
   cv.setPointerCapture(e.pointerId); down = true; var c = cellAt(e);
   if (ui.multi && ui.drawing && !ui.eraser) { chain = c >= 0 ? [c] : []; draw(); return; }
   if (ui.multi && ui.eraser) { if (c >= 0) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
-  if (ui.multi) { if (c < 0) return; addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return; }
+  if (ui.multi) {
+    // holding a digit on the board (without moving): shown as in the other modes, nothing gets selected
+    clearTimeout(holdTimer); if (peekCell >= 0) peekCell = -1;
+    if (c < 0) { draw(); return; }
+    holdCell = c;
+    if (g.value[c]) { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 300); }
+    addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return;
+  }
   if (c < 0) return;
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); }
   onCellTapped(c); draw();
@@ -517,10 +527,11 @@ cv.addEventListener('pointermove', function (e) {
     return;
   }
   if (ui.multi && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
-  if (ui.multi) { if (ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
+  if (ui.multi) { if (c !== holdCell) clearTimeout(holdTimer); if (peekCell < 0 && ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); draw(); }
 });
 function up() {
+  clearTimeout(holdTimer);
   if (!down) return; down = false; lastErased = -1;
   if (ui.multi && ui.drawing && !ui.eraser && chain.length) {
     var ch = chain; chain = []; var any = false; batch = true; batchPushed = false;
@@ -600,10 +611,10 @@ function speedTap() {
 function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
 function enterRed() {
   ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
-  ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
+  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
 }
 function leaveRed(toBlue) {
-  ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
+  peekCell = -1; ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
   ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
   if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
   ui.msel.fill(false); refresh();
@@ -611,6 +622,7 @@ function leaveRed(toBlue) {
 function multiCells() { var r = []; for (var c = 0; c < 81; c++) if (ui.msel[c]) r.push(c); return r; }
 function commonColor() { var cs2 = multiCells(); if (!cs2.length) return 0; for (var k = 1; k <= 3; k++) if (cs2.every(function (c) { return hasColor(c, k); })) return k; return 0; }
 function multiInput(d) {
+  peekCell = -1;
   if (g.status) return; var cs2 = multiCells(); if (!cs2.length) return;
   var changed = false, mistake = false, lastOk = -1; batch = true; batchPushed = false;
   if (ui.mode === MODE_COLOR) {
@@ -819,9 +831,10 @@ function showPause() {
     o.innerHTML = '<div class="card" style="border:1.5px solid var(--line)"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:30px">' + t.pauseTitle + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="margin-top:4px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' + (SE > 0 ? '<div class="info">' + f(t.seLine, seText(SE)) + '</div>' : '') + ch +
       '<div class="btns" style="margin-top:18px"><button class="pill filled" id="pRes">' + t.resume + '</button></div></div>' +
-      '<div class="plates"><button class="pill" id="pApk">' + t.apk + '</button><button class="pill acc" id="pApp">' + t.playApp + '</button></div>';
+      '<div class="plates"><button class="pill" id="pApk">' + t.apk + '</button><button class="pill" id="pRu">' + t.rustore + '</button></div>' +
+      '<div class="plates" style="margin-top:8px"><button class="pill acc" id="pApp">' + t.playApp + '</button></div>';
     $('pRes').onclick = function () { o.remove(); paused = false; startClock(); refresh(); };
-    $('pApk').onclick = apk; $('pApp').onclick = openInGame; wireLang(o, draw1);
+    $('pApk').onclick = apk; $('pRu').onclick = rustore; $('pApp').onclick = openInGame; wireLang(o, draw1);
   };
   app.appendChild(o); draw1();
 }
