@@ -868,7 +868,7 @@ function confirmBox(msg, yes) {
   app.appendChild(o); $('cNo').onclick = function () { o.remove(); }; $('cYes').onclick = function () { o.remove(); yes(); };
 }
 function staticTexts() {
-  document.documentElement.lang = lang; document.title = (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + ' · Sudoky';
+  document.documentElement.lang = lang; document.title = (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + ' · ' + (lang === 'ru' ? 'Судоку' : 'Sudoky');
   $('bMenu').textContent = t.menu; $('bNew').textContent = t.newGame; $('bPause').textContent = t.pause; $('bWrite').textContent = t.writeAll;
   $('bUndo').textContent = t.undo; $('bRedo').textContent = t.redo;
   if (pendingHint) banner(hintText(pendingHint));
