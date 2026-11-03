@@ -621,7 +621,7 @@ function speedTap() {
 function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
 function enterRed() {
   ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
-  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
+  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; refresh();   // a held key's digit stays lit
 }
 function leaveRed(toBlue) {
   peekCell = -1; ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
