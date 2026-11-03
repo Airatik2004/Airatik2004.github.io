@@ -182,6 +182,7 @@ var nm = /[?&]n=([^&#]+)/.exec(q), nick = '';
 try { nick = nm ? decodeURIComponent(nm[1].replace(/\+/g, ' ')).replace(/[;~,|<>&"]/g, ' ').trim().slice(0, 20) : ''; } catch (e) { nick = ''; }
 var seM = /[?&]se=(\d{1,3})/.exec(q), dM = /[?&]d=(\d{1,2})/.exec(q);
 var SE = seM ? +seM[1] : -1, DEN = dM ? +dM[1] : 0;
+var gM = /[?&]g=([A-Za-z0-9_-]{80,90})/.exec(q), GSIG = gM ? gM[1] : '', goldNick = false;
 lang = forced ? forced[1] : (['ru', 'uk', 'be', 'kk'].indexOf(nav) >= 0 ? 'ru' : 'en');
 t = TX[lang];
 
@@ -767,9 +768,9 @@ function progressParam() {
 function openInGame() {
   if (!ANDROID) { tip(t.onlyAndroid); return; }
   stopClock(); save();
-  var extra = (SE > 0 ? '&se=' + SE : '') + (DEN > 0 ? '&d=' + DEN : '') + (nick ? '&n=' + encodeURIComponent(nick) : '');
+  var extra = (SE > 0 ? '&se=' + SE : '') + (DEN > 0 ? '&d=' + DEN : '') + (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '');
   var p = progressParam(); if (p) extra += '&p=' + encodeURIComponent(p);
-  var back = location.origin + location.pathname + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + '&noapp=1&lang=' + lang;
+  var back = location.origin + location.pathname + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '') + '&noapp=1&lang=' + lang;
   location.href = 'intent://s/?c=' + encodeURIComponent(code) + extra + '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end';
 }
 function rustore() { if (!ANDROID) { tip(t.onlyAndroid); return; } location.href = RUSTORE; }
@@ -780,6 +781,8 @@ var tipTimer = null;
 function tip(msg) { var x = $('tip'); x.textContent = msg; x.style.display = 'block'; clearTimeout(tipTimer); tipTimer = setTimeout(function () { x.style.display = 'none'; }, 2600); x.onclick = function () { x.style.display = 'none'; }; }
 function levelName() { return t.levels[g.level] || '?'; }
 function friendName() { return nick || t.friend; }
+/** The friend's name for the page: the developer's nickname (signed link) in gold. */
+function fname() { return goldNick ? '<b style="color:' + C.gold + '">' + esc(friendName()) + '</b>' : esc(friendName()); }
 function updateLevelLine() {
   var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
   if (g.chMs >= 0) s += ' · ' + f(t.goal, fmt(g.chMs));
@@ -805,7 +808,7 @@ function showStart() {
   var draw1 = function () {
     // compact, so the whole board stays in view above it
     var meta = levelName() + (SE > 0 ? ' · SE <b>' + seText(SE) + '</b>' + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
-    if (g.chMs >= 0) meta += '<br>' + f(t.chFriend, '<b>' + fmt(g.chMs) + '</b>', g.chErr, g.chHints, esc(friendName()));
+    if (g.chMs >= 0) meta += '<br>' + f(t.chFriend, '<b>' + fmt(g.chMs) + '</b>', g.chErr, g.chHints, fname());
     st.innerHTML = '<div class="card" style="padding:12px 14px 10px"><div class="head"><img src="/icon.png" alt="" style="width:32px;height:32px;border-radius:9px"><h2 style="font-size:18px">' +
       (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="margin-top:6px;font-size:13.5px">' + meta + '</div>' + (/[?&]noapp=1/.test(q) ? '<div class="note">' + t.noapp + '</div>' : '') +
@@ -827,7 +830,7 @@ function showPause() {
   stopClock(); paused = true; save();
   var o = document.createElement('div'); o.className = 'ov pause';
   var draw1 = function () {
-    var ch = g.chMs >= 0 ? '<div class="info" style="color:var(--text);font-weight:600;margin-top:6px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, esc(friendName())) + '</div>' : '';
+    var ch = g.chMs >= 0 ? '<div class="info" style="color:var(--text);font-weight:600;margin-top:6px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, fname()) + '</div>' : '';
     o.innerHTML = '<div class="card" style="border:1.5px solid var(--line)"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:30px">' + t.pauseTitle + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="margin-top:4px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' + (SE > 0 ? '<div class="info">' + f(t.seLine, seText(SE)) + '</div>' : '') + ch +
       '<div class="btns" style="margin-top:18px"><button class="pill filled" id="pRes">' + t.resume + '</button></div></div>' +
@@ -845,8 +848,8 @@ function onWon() {
     var ch = '';
     if (g.chMs >= 0) {
       var diff = Math.floor(g.elapsed / 1000) - Math.floor(g.chMs / 1000);
-      var verdict = diff < 0 ? f(t.faster, fmt(-diff * 1000)) : diff > 0 ? f(t.slower, fmt(diff * 1000), esc(friendName())) : t.tie;
-      ch = '<div class="info" style="color:' + (diff <= 0 ? 'var(--ok)' : 'var(--text)') + ';font-weight:600;margin-top:8px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, esc(friendName())) + '<br>' + verdict + '</div>';
+      var verdict = diff < 0 ? f(t.faster, fmt(-diff * 1000)) : diff > 0 ? f(t.slower, fmt(diff * 1000), fname()) : t.tie;
+      ch = '<div class="info" style="color:' + (diff <= 0 ? 'var(--ok)' : 'var(--text)') + ';font-weight:600;margin-top:8px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, fname()) + '<br>' + verdict + '</div>';
     }
     o.innerHTML = '<div class="card"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:32px;color:var(--accent)">' + t.solved + '</h2>' + langBtn() + '</div>' +
       '<div class="info" style="color:var(--text);font-size:17px;margin-top:6px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' +
@@ -886,6 +889,21 @@ document.addEventListener('keyup', function (e) {
 });
 
 staticTexts(); updateLevelLine(); resize(); refresh(); showStart();
+
+// a link from the developer build: its signature (ECDSA P-256 over «sudoky|code|nickname») — the nickname then shows in gold
+(function () {
+  if (!GSIG || !nick || !window.crypto || !crypto.subtle) return;
+  var hex = '04737db78cd9689b442ce0e113dd39b36e292b449c424f923dd51141b377fffcaf531f97b6a436d52ff21380f3371f00d837996ac78e0a30aefa41e175f49af5b8';
+  var key = new Uint8Array(hex.match(/../g).map(function (h) { return parseInt(h, 16); }));
+  var b64 = GSIG.replace(/-/g, '+').replace(/_/g, '/'); while (b64.length % 4) b64 += '=';
+  var sig = Uint8Array.from(atob(b64), function (ch) { return ch.charCodeAt(0); });
+  crypto.subtle.importKey('raw', key, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']).then(function (k) {
+    return crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, sig, new TextEncoder().encode('sudoky|' + D.plain + '|' + nick));
+  }).then(function (ok) {
+    if (!ok) return; goldNick = true;
+    var st = $('start'); if (st && !started) { st.remove(); showStart(); }
+  }).catch(function () { });
+})();
 
 // ------------------------------------------------------------------ no puzzle in the link: the page of the game
 function plainPage() {
