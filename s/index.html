@@ -575,7 +575,7 @@ function digitKey(d) {
     else { ui.qd = ui.qd === d ? 0 : d; ui.anchor = -1; ui.sel = -1; refresh(); }
   } else input(d);
 }
-function peekKey(d) { if (!started || paused) return; if (ui.quick) ui.qd = 0; if (!ui.multi) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
+function peekKey(d) { if (!started || paused) return; peekCell = -1; if (ui.quick) ui.qd = 0; if (!ui.multi) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
 function colorKey(k) {
   if (!started || paused) return; ui.eraser = false;
   if (ui.multi && ui.drawing) { ui.drawColor = k; refresh(); return; }
