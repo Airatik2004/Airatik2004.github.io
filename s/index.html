@@ -93,6 +93,9 @@
   var code = m ? decodeURIComponent(m[1]).trim() : '';
   if (!/^[1-8]-[0-9A-Za-z]{12,60}(~\d{1,6}\.\d{1,3}\.\d{1,3})?$/.test(code)) code = '';
   var forced = /[?&]lang=(ru|en)/.exec(q);
+  // the sender's nickname (from his profile): shown instead of «Друг»
+  var nm = /[?&]n=([^&#]+)/.exec(q), nick = '';
+  try { nick = nm ? decodeURIComponent(nm[1].replace(/\+/g, ' ')).replace(/[;~,|<>&"]/g, ' ').trim().slice(0, 20) : ''; } catch (e) { nick = ''; }
   var nav = (navigator.language || 'en').toLowerCase().slice(0, 2);
   var $ = function (id) { return document.getElementById(id); };
   var t, lang;
@@ -140,8 +143,9 @@
   open.textContent = t.open;
   // Android: the game's own address sudoky://s/?c=… (the https link itself always stays in the browser);
   // without the game Chrome comes back here with noapp=1
-  var back = self + '?c=' + encodeURIComponent(code) + '&noapp=1&lang=' + lang;
+  var back = self + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + '&noapp=1&lang=' + lang;
   var extra = (/[?&]se=\d+/.test(q) ? '&' + q.match(/se=\d+/)[0] : '') + (/[?&]d=\d+/.test(q) ? '&' + q.match(/d=\d+/)[0] : '');
+  if (nick) extra += '&n=' + encodeURIComponent(nick);
   open.href = /Android/i.test(navigator.userAgent)
     ? 'intent://s/?c=' + encodeURIComponent(code) + extra +
       '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
@@ -153,6 +157,8 @@
    * The code as in the game (PuzzleCode): "<level 1..8>-<base36>[~seconds.errors.hints]". Read from the last cell:
    * a bit 1 = a given whose digit-1 comes next in base 9, a bit 0 = an empty cell; what is left must be 1.
    */
+  function esc(x) { return x.replace(/[&<>"']/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
+
   function decode(c) {
     var t2 = c.indexOf('~'), res = null;
     if (t2 > 0) { res = c.slice(t2 + 1).split('.').map(Number); c = c.slice(0, t2); }
@@ -191,7 +197,7 @@
     var lines = line ? [line] : [];
     if (d.res && d.res.length === 3) {
       var sec = d.res[0], mm = Math.floor(sec / 60), ss = sec % 60;
-      lines.push(t.friend + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
+      lines.push((nick ? esc(nick) : t.friend) + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
         + t.mistakes + ' ' + d.res[1] + ' · ' + t.hints + ' ' + d.res[2]);
     }
     $('meta').innerHTML = lines.join('<br>');
