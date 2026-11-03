@@ -628,6 +628,7 @@ function leaveRed(toBlue) {
   ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
   if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
   ui.redCur = -1;
+  var one = multiCells(); if (one.length === 1) { ui.sel = one[0]; ui.qd = 0; ui.anchor = -1; ui.chosen = false; }   // one cell selected: the cursor goes there
   // into the blue mode with a digit cell under the cursor: that digit is picked, as by a tap from the white mode
   var sc = ui.sel; if (toBlue && !ui.qd && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
   ui.msel.fill(false); ui.fresh = false; refresh();
