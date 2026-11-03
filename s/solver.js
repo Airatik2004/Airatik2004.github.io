@@ -93,11 +93,11 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
     /** Tier of each technique code. */
     const TIER_OF = [0, T_FISH, T_FISH, T_FISH, T_WINGS, T_WINGS, T_WINGS, T_ADVANCED, T_ADVANCED, T_ADVANCED,
             T_ADVANCED, T_ADVANCED, T_ADVANCED, T_WINGS, T_ADVANCED, T_NAKED, T_SUBSETS, T_SUBSETS, T_HIDDEN, T_NAKED,
-            T_WINGS, T_ADVANCED];
+            T_WINGS, T_ADVANCED, T_ADVANCED, T_HARDER];
 
     /** Approximate Sudoku Explainer rating of each technique code (tenths). */
     // ordered by our levels: Сложный ≤ 4,0, Эксперт ≤ 4,6, Мастер 4,5–6,9; chains rise with their length (see chainSe)
-    const SE_OF = [0, 32, 40, 38, 42, 44, 44, 50, 45, 52, 52, 54, 50, 46, 56, 26, 30, 36, 15, 23, 41, 48];
+    const SE_OF = [0, 32, 40, 38, 42, 44, 44, 50, 45, 52, 52, 54, 50, 46, 56, 26, 30, 36, 15, 23, 41, 48, 65, 70];
 
     /** Length of the chain found by the last xChain (links) / xyChain (cells), per thread. */
     const CHAIN = new Array(1).fill(0);
@@ -119,6 +119,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         let n = CHAIN[0];
         if (w == W_XCHAIN) return Math.min(69, 52 + 2 * Math.max(0, n - 3));       // 3 links 5,2 · 5 → 5,6 · 7 → 6,0 …
         if (w == W_XYCHAIN) return Math.min(69, 50 + 4 * Math.max(0, n - 3));      // 3 cells 5,0 · 4 → 5,4 · 5 → 5,8 …
+        if (w == W_RING || w == W_AIC) return (ALT[1] === 1 ? 70 : w == W_RING ? 65 : 66) + lengthBonus(ALT[0]);
         return SE_OF[w];
     }
 
@@ -126,7 +127,8 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
      * Applies the simplest elimination technique (anything but singles) that works, in the order of
      * the levels; returns its code, 0 if none.
      */
-    function step(val, cand) {
+    function step(val, cand, chains) {
+        if (chains === undefined) chains = true;
         if (locked(cand)) return W_LOCKED;
         if (subsetsN(val, cand, 2)) return W_PAIRS;
         if (subsetsN(val, cand, 3)) return W_TRIPLES;
@@ -151,7 +153,118 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         if (bugPlusOne(val, cand)) return W_BUG;
         if (xChain(val, cand)) return W_XCHAIN;
         if (xyChain(val, cand)) return W_XYCHAIN;
+        if (chains) { var aw = altChain(val, cand); if (aw > 0) return aw; }
         return 0;
+    }
+
+    function lengthBonus(nodes) {
+        var added = 0, ceil = 4, odd = false;
+        while (nodes > ceil) { added++; ceil = odd ? Math.floor(ceil * 4 / 3) : Math.floor(ceil * 3 / 2); odd = !odd; }
+        return added;
+    }
+
+    const W_RING = 22, W_AIC = 23;
+    const ALT = [0, 0];
+
+    /** Ring («Мастер») or alternating chain (AIC, «Гроссмейстер»), as Sudoku.java altChain. */
+    function altChain(val, cand) {
+        var bestRing = Infinity, bestAic = Infinity, ringEl = null, aicEl = null, ringMixed = 0, aicMixed = 0;
+        var par = new Int32Array(1620), dist = new Int32Array(1620), qu = new Int32Array(1620), path = new Int32Array(1620);
+        for (var sc = 0; sc < 81; sc++) {
+            if (val[sc] !== 0) continue;
+            for (var sd = 1; sd <= 9; sd++) {
+                if ((cand[sc] & (1 << sd)) === 0) continue;
+                var s = sc * 10 + sd;
+                par.fill(-2);
+                var head = 0, tail = 0;
+                par[s * 2] = -1; dist[s * 2] = 0; qu[tail++] = s * 2;
+                while (head < tail) {
+                    var st = qu[head++], nd = st >> 1, c = Math.floor(nd / 10), d = nd % 10;
+                    var dn = dist[st] + 1, m;
+                    if (dn >= bestRing && dn >= bestAic) break;
+                    if ((st & 1) === 0) {
+                        if (bitCount(cand[c]) === 2) {
+                            var o = ntz(cand[c] & ~(1 << d));
+                            m = (c * 10 + o) * 2 + 1;
+                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
+                        }
+                        for (var u of CELL_UNITS[c]) {
+                            var other = -1, k = 0;
+                            for (var q of UNITS[u]) if (val[q] === 0 && (cand[q] & (1 << d)) !== 0) { k++; if (q !== c) other = q; }
+                            if (k !== 2) continue;
+                            m = (other * 10 + d) * 2 + 1;
+                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
+                        }
+                    } else {
+                        for (var o2 = 1; o2 <= 9; o2++) {
+                            if (o2 === d || (cand[c] & (1 << o2)) === 0) continue;
+                            m = (c * 10 + o2) * 2;
+                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
+                        }
+                        for (var q2 of PEERS[c]) {
+                            if (val[q2] !== 0 || (cand[q2] & (1 << d)) === 0) continue;
+                            m = (q2 * 10 + d) * 2;
+                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
+                        }
+                    }
+                }
+                for (var i = 0; i < tail; i++) {
+                    var st2 = qu[i];
+                    if ((st2 & 1) === 0) continue;
+                    var len = dist[st2] + 1;
+                    if (len < 4 || (len >= bestRing && len >= bestAic)) continue;
+                    var t = st2 >> 1, kk = 0;
+                    for (var x = st2; x >= 0; x = par[x]) path[kk++] = x;
+                    var distinct = true;
+                    for (var a = 0; a < kk && distinct; a++) for (var b = a + 1; b < kk; b++) if ((path[a] >> 1) === (path[b] >> 1)) { distinct = false; break; }
+                    if (!distinct) continue;
+                    var cellL = false, houseL = false;
+                    for (a = 0; a + 1 < kk; a++) if ((path[a] & 1) === 1) { if (Math.floor((path[a] >> 1) / 10) === Math.floor((path[a + 1] >> 1) / 10)) cellL = true; else houseL = true; }
+                    var tc = Math.floor(t / 10), td = t % 10;
+                    var closes = t !== s && ((tc === sc && td !== sd) || (td === sd && isPeer(tc, sc)));
+                    var el;
+                    if (closes && len < bestRing) {
+                        el = [];
+                        for (a = 0; a + 1 < kk; a++) if ((path[a] & 1) === 0) weakElims(val, cand, path[a] >> 1, path[a + 1] >> 1, el);
+                        weakElims(val, cand, t, s, el);
+                        if (el.length) { bestRing = len; ringEl = el; ringMixed = cellL && houseL ? 1 : 0; }
+                    }
+                    if (len < bestAic) {
+                        el = [];
+                        if (t === s) { for (var o3 = 1; o3 <= 9; o3++) if (o3 !== sd && (cand[sc] & (1 << o3)) !== 0) el.push(sc * 10 + o3); }
+                        else if (tc === sc) { for (o3 = 1; o3 <= 9; o3++) if (o3 !== sd && o3 !== td && (cand[sc] & (1 << o3)) !== 0) el.push(sc * 10 + o3); }
+                        else if (td === sd) { for (var q3 = 0; q3 < 81; q3++) if (q3 !== sc && q3 !== tc && val[q3] === 0 && (cand[q3] & (1 << sd)) !== 0 && isPeer(q3, sc) && isPeer(q3, tc)) el.push(q3 * 10 + sd); }
+                        else if (isPeer(tc, sc)) {
+                            if ((cand[tc] & (1 << sd)) !== 0) el.push(tc * 10 + sd);
+                            if ((cand[sc] & (1 << td)) !== 0) el.push(sc * 10 + td);
+                        }
+                        if (el.length) { bestAic = len; aicEl = el; aicMixed = cellL && houseL ? 1 : 0; }
+                    }
+                }
+            }
+        }
+        var e2;
+        if (aicEl && !ringEl) {
+            for (e2 of aicEl) cand[Math.floor(e2 / 10)] &= ~(1 << (e2 % 10));
+            ALT[0] = bestAic; ALT[1] = aicMixed;
+            return W_AIC;
+        }
+        if (ringEl) {
+            for (e2 of ringEl) cand[Math.floor(e2 / 10)] &= ~(1 << (e2 % 10));
+            ALT[0] = bestRing; ALT[1] = ringMixed;
+            return W_RING;
+        }
+        return 0;
+    }
+
+    function weakElims(val, cand, u, v, el) {
+        var uc = Math.floor(u / 10), ud = u % 10, vc = Math.floor(v / 10), vd = v % 10;
+        if (uc === vc) {
+            for (var o = 1; o <= 9; o++) if (o !== ud && o !== vd && (cand[uc] & (1 << o)) !== 0 && el.indexOf(uc * 10 + o) < 0) el.push(uc * 10 + o);
+        } else if (ud === vd) {
+            for (var q = 0; q < 81; q++)
+                if (q !== uc && q !== vc && val[q] === 0 && (cand[q] & (1 << ud)) !== 0 && isPeer(q, uc) && isPeer(q, vc) && el.indexOf(q * 10 + ud) < 0) el.push(q * 10 + ud);
+        }
     }
 
     /**
@@ -983,7 +1096,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             }
             let w = step(val, cand);
             if (w > 0) {
-                tier = Math.max(tier, TIER_OF[w]); sub = w;
+                tier = Math.max(tier, Math.min(T_ADVANCED, TIER_OF[w])); sub = w;
                 hu[0] |= 1 << w;
                 if (w == W_UNIQUERECT) hu[0] |= 1 << urBit(UR_TYPE[0]);
                 continue;
@@ -1076,19 +1189,17 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         }
     }
 
-    var SE_BEYOND = 70, SE_DEEP = 95, SE_NESTED = 110, SE_EXTREME = 120;
-    var deadline = 0, lastLen = 0, lastSteps = 0;
+    var SE_BEYOND = 70, SE_EXTREME = 120, BOUND = 1000;
+    var B0 = 82.1, K1 = 2.64, KT = 0.28, B2 = 4.5;
+    var deadline = 0, lastLen = 0, lastSteps = 0, bmax = 0;
     function late() { return deadline > 0 && Date.now() > deadline; }
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+    /** As Sudoku.java beyond(): n = [1st degree, 2nd degree, hardest technique inside the 1st, chains]. */
     function beyond(r, n) {
-        if (n[2] > 0) return Math.max(r, clamp(111 + Math.log(n[2]) * 4, 111, 119));
-        if (n[1] > 0) return Math.max(r, clamp(93 + Math.log(n[1]) * 6.5, 96, 109));
-        if (n[0] > 0) return Math.max(r, clamp(66 + Math.log(n[0]) * 8.5, 71, 94));
-        return r;
-    }
-    function bound(n, depth) {
-        var d = n[2] > 0 ? 2 : n[1] > 0 ? Math.max(1, depth) : depth;
-        return d === 2 ? SE_NESTED : d === 1 ? SE_DEEP : SE_BEYOND;
+        if (n[0] === 0 && n[1] === 0) return r;
+        var v = B0 + K1 * Math.log(Math.max(1, n[0])) + KT * n[2];
+        if (n[1] > 0) v += B2;
+        return Math.max(r, clamp(v, SE_BEYOND, SE_EXTREME - 1));
     }
     function breaks(val, cand, depth) {
         var steps = 0;
@@ -1099,7 +1210,8 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             if (n > 0) { steps += n; continue; }
             if (depth === 0) return -1;
             steps++;
-            if (step(val, cand) > 0) continue;
+            var w = step(val, cand, false);
+            if (w > 0) { bmax = Math.max(bmax, stepSe(w)); continue; }
             if (depth === 2 && assume(val, cand, 0)) continue;
             return -1;
         }
@@ -1124,7 +1236,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         lastLen = best;
         return true;
     }
-    /** SE in tenths (70 / 95 / 110 — lower bounds when out of time); lastSteps — key moves. */
+    /** SE in tenths (BOUND + the rating so far — out of time); lastSteps — key moves (a + 1000·b with the 2nd degree). */
     function seRating(puzzle, millis) {
         deadline = millis > 0 ? Date.now() + millis : 0;
         try { return seRun(puzzle); } finally { deadline = 0; }
@@ -1134,8 +1246,8 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         var val = puzzle.slice(), cand = new Array(81);
         for (var c = 0; c < 81; c++) cand[c] = val[c] === 0 ? 0x3FE : 0;
         for (c = 0; c < 81; c++) if (val[c] !== 0) for (var p of PEERS[c]) cand[p] &= ~(1 << val[c]);
-        var r = 12, n = [0, 0, 0];
-        var fin = function (x) { lastSteps = steps[steps[9]]; return x; };
+        var r = 12, n = [0, 0, 0, 0];
+        var fin = function (x) { lastSteps = steps[9] === T_HARDER ? n[3] + n[0] + 1000 * n[1] : steps[steps[9]]; return x; };
         while (true) {
             if (contradiction(val, cand)) return fin(beyond(r, n));
             var empty = false;
@@ -1145,13 +1257,17 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             if (hiddenSingles(val, cand) > 0) { r = Math.max(r, 15); continue; }
             if (nakedSingles(val, cand) > 0) { r = Math.max(r, 23); steps[9] = Math.max(steps[9], T_NAKED); continue; }
             var w = step(val, cand);
-            if (w > 0) { r = Math.max(r, stepSe(w)); steps[TIER_OF[w]]++; steps[9] = Math.max(steps[9], TIER_OF[w]); continue; }
+            if (w > 0) { r = Math.max(r, stepSe(w)); steps[TIER_OF[w]]++; steps[9] = Math.max(steps[9], TIER_OF[w]); if (w === W_AIC) n[3]++; continue; }
             var done = false;
             for (var depth = 0; depth < 3 && !done; depth++) {
-                if (late()) return fin(bound(n, depth));
-                if (assume(val, cand, depth)) { n[depth]++; done = true; }
+                if (late()) return fin(BOUND + Math.max(beyond(r, n), SE_BEYOND));
+                bmax = 0;
+                if (assume(val, cand, depth)) {
+                    done = true;
+                    if (depth < 2) { n[0]++; n[2] = Math.max(n[2], bmax); } else n[1]++;
+                }
             }
-            if (late()) return fin(bound(n, 2));
+            if (late()) return fin(BOUND + Math.max(beyond(r, n), SE_BEYOND));
             if (!done) return fin(SE_EXTREME);
             steps[T_HARDER]++;
             steps[9] = T_HARDER;

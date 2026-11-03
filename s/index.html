@@ -115,14 +115,13 @@ var TX = {
     other: 'EN', levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
     friend: 'Друг', from: 'От', level: 'Уровень', depth: 'Глубина (SE)', ftime: 'Время друга', ftimeNick: '{1} — время', mistakesL: 'Ошибки', hintsL: 'Подсказки',
     dec: ',', menu: '‹ Меню', newGame: 'Новая игра', pause: '❚❚ Пауза', hint: '💡 Подсказка', hintWhere: '💡 Где?', hintPlace: '💡 Поставить',
-    writeAll: '✎ Записать всё', undo: '↶ Отменить', redo: '↷ Вернуть', erase: 'Ластик', slow: 'Медленный', quick: 'Быстрый', multi: 'Выделение',
-    corner: 'Угол', center: 'Центр', color: 'Цвет', answer: 'Ответ', colors: ['', 'Красный', 'Зелёный', 'Синий'],
+    writeAll: '✎ Записать всё', undo: '↶ Отменить', redo: '↷ Вернуть', erase: 'Ластик', slow: 'Медленный', quick: 'Быстрый',
+    corner: 'Угол', center: 'Центр', color: 'Цвет', link: 'Связь', answer: 'Ответ', colors: ['', 'Красный', 'Зелёный', 'Синий'],
     errors: 'Ошибок: {1}', hints: 'Подсказок: {1}', goal: 'Цель {1}', pauseTitle: 'Пауза', resume: '▶  Продолжить',
     solved: 'Решено', counts: 'Ошибок: {1} · Подсказок: {2}', seLine: 'Сложность по шкале SE ≈ {1}',
     chFriend: '{4}: {1} · ошибок {2} · подсказок {3}', faster: 'Вы быстрее на {1}!', slower: '{2} быстрее на {1}', tie: 'Ровно столько же!',
     afterApk: 'Когда установите игру, вернитесь сюда и нажмите «Открыть в игре» — партия продолжится там с этого места.',
     onlyApp: 'Это есть только в игре — она на Android.', onlyAndroid: 'Игра есть только на Android: скачайте APK на телефон.',
-    drawOnlyRed: 'Линии рисуются в режиме «Выделение»: сначала подержите кнопку «Медленный» / «Быстрый»',
     confirmWrite: 'Записать {1} — все клетки с одной заметкой станут ответами?', yes: 'Записать', cancel: 'Отмена',
     unitRow: 'строке', unitCol: 'столбце', unitBox: 'блоке',
     hHidden: 'Скрытый сингл: в этом {1} одна из цифр может стоять только в выделенной клетке.',
@@ -135,7 +134,7 @@ var TX = {
     hMore: 'Как работает приём — в справке игры на Android.',
     tech: {hidden: 'скрытый сингл', naked: 'явный сингл', 1: 'X-wing', 2: 'небоскрёб', 3: 'рыба-меч', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
            7: 'пустой прямоугольник', 8: 'прямоугольник уникальности', 9: 'X-цепочка', 10: 'M-wing', 11: 'S-wing', 12: 'XY-цепочка',
-           13: 'рыба с плавником', 14: 'BUG+1', 15: 'блокировка кандидатов', 16: 'пары', 17: 'тройки', 20: 'воздушный змей', 21: 'рыба-меч с плавником'}
+           13: 'рыба с плавником', 14: 'BUG+1', 15: 'блокировка кандидатов', 16: 'пары', 17: 'тройки', 20: 'воздушный змей', 21: 'рыба-меч с плавником', 22: 'кольцо', 23: 'чередующаяся цепочка (AIC)'}
   },
   en: {
     titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
@@ -146,14 +145,13 @@ var TX = {
     other: 'RU', levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
     friend: 'Friend', from: 'From', level: 'Level', depth: 'Depth (SE)', ftime: 'Friend\'s time', ftimeNick: '{1} — time', mistakesL: 'Mistakes', hintsL: 'Hints',
     dec: '.', menu: '‹ Menu', newGame: 'New game', pause: '❚❚ Pause', hint: '💡 Hint', hintWhere: '💡 Where?', hintPlace: '💡 Place',
-    writeAll: '✎ Write all', undo: '↶ Undo', redo: '↷ Redo', erase: 'Eraser', slow: 'Slow', quick: 'Quick', multi: 'Select',
-    corner: 'Corner', center: 'Center', color: 'Color', answer: 'Answer', colors: ['', 'Red', 'Green', 'Blue'],
+    writeAll: '✎ Write all', undo: '↶ Undo', redo: '↷ Redo', erase: 'Eraser', slow: 'Slow', quick: 'Quick',
+    corner: 'Corner', center: 'Center', color: 'Color', link: 'Link', answer: 'Answer', colors: ['', 'Red', 'Green', 'Blue'],
     errors: 'Mistakes: {1}', hints: 'Hints: {1}', goal: 'Goal {1}', pauseTitle: 'Pause', resume: '▶  Resume',
     solved: 'Solved', counts: 'Mistakes: {1} · Hints: {2}', seLine: 'Difficulty on the SE scale ≈ {1}',
     chFriend: '{4}: {1} · mistakes {2} · hints {3}', faster: 'You are faster by {1}!', slower: '{2} is faster by {1}', tie: 'Exactly the same!',
     afterApk: 'Once the game is installed, come back here and tap «Open in the game» — the game will go on there from this point.',
     onlyApp: 'This is only in the game — it is on Android.', onlyAndroid: 'The game is only on Android: download the APK to your phone.',
-    drawOnlyRed: 'Lines are drawn in «Select» mode: hold the «Slow» / «Quick» button first',
     confirmWrite: 'Write {1} — all cells with one note become answers?', yes: 'Write', cancel: 'Cancel',
     unitRow: 'row', unitCol: 'column', unitBox: 'box',
     hHidden: 'Hidden single: in this {1}, one of the digits can only go into the highlighted cell.',
@@ -166,7 +164,7 @@ var TX = {
     hMore: 'How the technique works — in the help of the game on Android.',
     tech: {hidden: 'hidden single', naked: 'naked single', 1: 'X-wing', 2: 'Skyscraper', 3: 'Swordfish', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
            7: 'empty rectangle', 8: 'unique rectangle', 9: 'X-chain', 10: 'M-wing', 11: 'S-wing', 12: 'XY-chain',
-           13: 'finned fish', 14: 'BUG+1', 15: 'locked candidates', 16: 'pairs', 17: 'triples', 20: '2-String Kite', 21: 'finned Swordfish'}
+           13: 'finned fish', 14: 'BUG+1', 15: 'locked candidates', 16: 'pairs', 17: 'triples', 20: '2-String Kite', 21: 'finned Swordfish', 22: 'ring', 23: 'alternating chain (AIC)'}
   }
 };
 var lang, t;
@@ -199,8 +197,12 @@ function decode(c) {
   if (n !== 1n) return null;
   return { level: parseInt(c[0], 10) - 1, cells: p, res: res, plain: c };
 }
-function seText(r) { if (r >= 120) return '12+'; var s = Math.floor(r / 10) + (r % 10 ? t.dec + (r % 10) : '');
-  return r === 70 || r === 95 || r === 110 ? s + '+' : Math.floor(r / 10) + t.dec + (r % 10); }
+function seText(r) {
+  if (r >= 1000) { var b = Math.min(r - 1000, 120); return Math.floor(b / 10) + (b % 10 ? t.dec + (b % 10) : '') + '+'; }   // out of time: at least this
+  if (r >= 120) return '12+';
+  return Math.floor(r / 10) + t.dec + (r % 10); }
+/** Key moves: «12» or «12+2» (+ assumptions of the 2nd degree). */
+function stepsText(st) { return st >= 1000 ? (st % 1000) + '+' + Math.floor(st / 1000) : String(st); }
 
 var D = null;
 try { D = code ? decode(code) : null; } catch (e) { D = null; }
@@ -229,15 +231,20 @@ var g = {
   chMs: D.res ? D.res[0] * 1000 : -1, chErr: D.res ? D.res[1] : 0, chHints: D.res ? D.res[2] : 0
 };
 var undoS = [], redoS = [], batch = false, batchPushed = false;
-var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, redCur: -1, redTouch: -1, fresh: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
-  eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0, preRed: null };
+var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, link: false, redTouch: -1, drawColor: 1, qd: 0, anchor: -1, chosen: false,
+  eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0 };
+/** «Связь» on the third tab (a tap on the active «Цвет» switches it): lines between cells. */
+function drawing() { return ui.link && ui.mode === MODE_COLOR; }
+/** Quick input: cells selected by a swipe (a key then goes into all of them). */
+function hasSel() { for (var c = 0; c < 81; c++) if (ui.msel[c]) return true; return false; }
+function clearSel() { ui.msel.fill(false); ui.redTouch = -1; }
 var pendingHint = null, hintNudge = false, hintCell = -1, hintUnit = -1;
 var started = false, paused = false, running = false, lastTick = 0;
 var KEY = 'sudoky:' + D.plain;
 
 function isGiven(c) { return g.puzzle[c] !== 0; }
 function snap() { return JSON.stringify({ v: g.value, k: g.corner, m: g.center, c: g.color, w: g.wrong, l: g.links,
-  u: [ui.mode, ui.lastNote, ui.multi ? 2 : ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0] }); }
+  u: [ui.mode, ui.lastNote, ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0] }); }
 function restore(s) { var o = JSON.parse(s); g.value = o.v; g.corner = o.k; g.center = o.m; g.color = o.c; g.wrong = o.w; g.links = o.l; return o.u; }
 function pushUndo() { if (batch) { if (batchPushed) return; batchPushed = true; } undoS.push(snap()); if (undoS.length > 300) undoS.shift(); redoS = []; }
 function placedCount(d) { var n = 0; for (var i = 0; i < 81; i++) if (g.value[i] === d && !g.wrong[i]) n++; return n; }
@@ -326,7 +333,7 @@ for (var k0 = 1; k0 <= 3; k0++) (function (kk) {
 })(k0);
 [MODE_CORNER, MODE_CENTER, MODE_COLOR, MODE_ANSWER].forEach(function (m) {
   var b = document.createElement('button'); b.className = 'tab'; b.innerHTML = '<canvas width="66" height="66" style="width:22px;height:22px"></canvas><span></span>';
-  hold(b, function () { setMode(m); }, m === MODE_COLOR ? colorHold : (m === MODE_CORNER || m === MODE_CENTER) ? function () { if (ui.sel >= 0 && moveNotes(ui.sel, m === MODE_CENTER)) afterChange(); } : null);
+  hold(b, function () { setMode(m); }, (m === MODE_CORNER || m === MODE_CENTER) ? function () { if (ui.sel >= 0 && moveNotes(ui.sel, m === MODE_CENTER)) afterChange(); } : null);
   $('tabs').appendChild(b); tabs[m] = b;
 });
 hold($('bMenu'), function () { tip(t.onlyApp); }, null);
@@ -340,7 +347,7 @@ hold($('bWrite'), function () {
 hold($('bUndo'), function () { if (!g.status && undoS.length) { redoS.push(snap()); applyUi(restore(undoS.pop())); afterChange(); } }, null);
 hold($('bRedo'), function () { if (!g.status && redoS.length) { undoS.push(snap()); applyUi(restore(redoS.pop())); afterChange(); } }, null);
 hold($('bErase'), eraserTap, null);
-hold($('bSpeed'), speedTap, speedHold);
+hold($('bSpeed'), speedTap, null);
 
 /** A short tap / a long press (0.3 s, or the right mouse button on a computer) — as on the phone. */
 function hold(el, tap, longp) {
@@ -380,12 +387,11 @@ function draw() {
   var selVal = ui.sel >= 0 ? g.value[ui.sel] : 0;
   if (ui.qd && ui.mode !== MODE_COLOR && ui.quick) selVal = ui.qd;
   if (ui.peek) selVal = ui.peek;
-  var pc = ui.multi ? peekCell : -1; if (pc >= 0) selVal = g.value[pc];
-  else if (ui.multi && !ui.peek && ui.redCur >= 0) selVal = g.value[ui.redCur];   // red mode: the cursor cell is still shown
-  var quickActive = ui.quick && ui.qd !== 0, lineCell = ui.multi ? (ui.redCur >= 0 ? ui.redCur : -1) : quickActive ? ui.anchor : ui.sel;
+  var pc = peekCell; if (pc >= 0 && g.value[pc]) selVal = g.value[pc];   // a cell held on the board: its houses and the same digits
+  var quickActive = ui.quick && ui.qd !== 0, lineCell = quickActive ? ui.anchor : ui.sel;
   for (var i = 0; i < 81; i++) {
     var bg = C.surface;
-    if (ui.multi && ui.msel[i]) bg = C.selected;
+    if (ui.msel[i]) bg = C.selected;
     else if (pc < 0 && i === lineCell) bg = C.selected;
     else if (i === pc) bg = C.selected;
     else if (selVal && g.value[i] === selVal) bg = C.sameDigit;
@@ -405,7 +411,7 @@ function draw() {
       var a0 = (150 + 120 * j) * Math.PI / 180; cx.beginPath(); cx.moveTo(x + cs / 2, y + cs / 2); cx.arc(x + cs / 2, y + cs / 2, cs, a0, a0 + 2 * Math.PI / 3); cx.closePath(); cx.fill(); cx.restore();
     }
   }
-  var frame = ui.multi ? ui.redTouch : quickActive && ui.sel !== ui.anchor ? ui.sel : -1;   // red mode: the last touched cell
+  var frame = ui.redTouch >= 0 && hasSel() ? ui.redTouch : quickActive && ui.sel !== ui.anchor ? ui.sel : -1;   // a swipe: the last touched cell
   if (frame >= 0) { cx.strokeStyle = C.accent; cx.lineWidth = 2.5; var fx = ox + (frame % 9) * cs, fy = oy + Math.floor(frame / 9) * cs; cx.strokeRect(fx + 1.5, fy + 1.5, cs - 3, cs - 3); }
   if (hintCell >= 0 && hintUnit >= 0) { cx.fillStyle = rgba(C.accent, 0.19); SX.UNITS[hintUnit].forEach(function (c) { if (c !== hintCell) cx.fillRect(ox + (c % 9) * cs, oy + Math.floor(c / 9) * cs, cs, cs); }); }
   if (flashCells) {
@@ -446,7 +452,7 @@ function drawCenter(x, y, mask, selVal) {
 function ax(c) { return ox + (c % 9) * cs + cs * 0.75; } function ay(c) { return oy + Math.floor(c / 9) * cs + cs * 0.75; }
 function drawLinks() {
   var ls = g.links.slice();
-  if (ui.drawing && ui.multi) for (var i = 1; i < chain.length; i++) ls.push(ui.drawColor * 6561 + Math.min(chain[i - 1], chain[i]) * 81 + Math.max(chain[i - 1], chain[i]));
+  if (drawing()) for (var i = 1; i < chain.length; i++) ls.push(ui.drawColor * 6561 + Math.min(chain[i - 1], chain[i]) * 81 + Math.max(chain[i - 1], chain[i]));
   if (!ls.length) return;
   cx.lineCap = 'round'; cx.lineWidth = 2.6;
   ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81; if (a === b) return;
@@ -459,15 +465,15 @@ function drawLinks() {
 function drawStatus() {
   var s = 22, x = ox + 2, y = oy - s - 4;
   if (ui.eraser) drawEraserIcon(x, y, s);
-  else if (ui.mode === MODE_COLOR && ui.drawing && ui.multi) linkIcon(cx, x, y, s, CELL[ui.drawColor]);
+  else if (drawing()) linkIcon(cx, x, y, s, CELL[ui.drawColor]);
   else if (ui.mode === MODE_COLOR) drawColorsIcon(x, y, s);
   else if (ui.mode === MODE_ANSWER) drawMarker(x, y, s);
   else drawPencil(x, y, s, ui.mode === MODE_CORNER);
   var pick = ui.quick ? ui.qd : 0, px = x + s + 6;
   if (pick && ui.mode === MODE_COLOR && !ui.eraser) { cx.fillStyle = rgba(CELL[pick], 0.65); roundRect(px, y + s * 0.18, s * 0.64, s * 0.64, 4); cx.fill(); }
   else if (pick && !ui.eraser) { cx.font = '600 ' + (s * 0.78) + 'px system-ui, Roboto, sans-serif'; cx.fillStyle = C.accent; drawCentered(String(pick), px + s * 0.28, y + s / 2); }
-  if (ui.quick || ui.multi) {
-    var bx = ox + 9 * cs - s, by = y; cx.fillStyle = ui.multi ? C.error : C.accent; cx.beginPath();
+  if (ui.quick) {
+    var bx = ox + 9 * cs - s, by = y; cx.fillStyle = C.accent; cx.beginPath();
     cx.moveTo(bx + s * 0.58, by + s * 0.04); cx.lineTo(bx + s * 0.18, by + s * 0.56); cx.lineTo(bx + s * 0.47, by + s * 0.56); cx.lineTo(bx + s * 0.38, by + s * 0.96);
     cx.lineTo(bx + s * 0.82, by + s * 0.40); cx.lineTo(bx + s * 0.53, by + s * 0.40); cx.closePath(); cx.fill();
   }
@@ -506,51 +512,99 @@ function linkIcon(c2, x, y, s, color) {
 }
 
 // ------------------------------------------------------------------ touch on the board (finger, or the left mouse button)
-var down = false, peekCell = -1, holdCell = -1, holdPrev = false, holdTimer = null;
+var down = false, peekCell = -1, holdCell = -1, lastCell = -1, moved = false, brushing = false, peeked = false, holdTimer = null;
 function cellAt(e) { var r = cv.getBoundingClientRect(), col = Math.floor((e.clientX - r.left - ox) / cs), row = Math.floor((e.clientY - r.top - oy) / cs);
   return col >= 0 && col < 9 && row >= 0 && row < 9 ? row * 9 + col : -1; }
 cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 cv.addEventListener('pointerdown', function (e) {
   if (!started || paused || e.button !== 0) return;
   cv.setPointerCapture(e.pointerId); down = true; var c = cellAt(e);
-  if (ui.multi && ui.drawing && !ui.eraser) { chain = c >= 0 ? [c] : []; draw(); return; }
-  if (ui.multi && ui.eraser) { if (c >= 0) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
-  if (ui.multi) {
-    // holding a digit on the board (without moving): shown as in the other modes, nothing gets selected
-    clearTimeout(holdTimer);
-    if (c < 0) { draw(); return; }
-    // the cursor cell stays shown (its houses and digit) while selecting, as in the white mode
-    if (ui.fresh) { ui.fresh = false; ui.msel.fill(false); }   // something was entered: a new selection
-    holdCell = c; ui.redTouch = c;
-    { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 400); }   // any cell: held, it is only lit
-    addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return;
+  if (drawing() && !ui.eraser) { chain = c >= 0 ? [c] : []; draw(); return; }
+  if (ui.quick && ui.eraser) { if (c >= 0) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
+  if (ui.quick) {
+    // a tap acts on lifting the finger; a swipe with a digit picked puts it into every cell it passes, without one — selects;
+    // holding a cell without moving only lights it (its houses and the same digits)
+    clearTimeout(holdTimer); holdCell = c; lastCell = c; moved = false; brushing = false; peeked = false;
+    if (c >= 0) holdTimer = setTimeout(function () { if (moved || holdCell < 0) return; peeked = true; peekCell = holdCell; ui.peek = 0; vib(20); refresh(); }, 400);
+    return;
   }
   if (c < 0) return;
+  peekCell = -1;
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); }
   onCellTapped(c); draw();
 });
 cv.addEventListener('pointermove', function (e) {
   if (!down || !started || paused) return; var c = cellAt(e); if (c < 0) return;
-  if (ui.multi && ui.drawing && !ui.eraser) {
+  if (drawing() && !ui.eraser) {
     if (!chain.length) return; var last = chain[chain.length - 1];
     if (chain.length >= 2 && c === chain[chain.length - 2]) { chain.pop(); draw(); }
     else if (c !== last && SX.isPeer(last, c)) { chain.push(c); draw(); }
     return;
   }
-  if (ui.multi && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
-  if (ui.multi) { if (c >= 0 && c !== ui.redTouch) { ui.redTouch = c; draw(); } if (c !== holdCell) clearTimeout(holdTimer); if (peekCell < 0 && ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
+  if (ui.quick && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
+  if (ui.quick) {
+    if (peeked || holdCell < 0 || c === lastCell) return;
+    if (!moved) {
+      moved = true; clearTimeout(holdTimer);
+      if (ui.qd) { brushing = true; peekCell = -1; brushStart(); brushCell(holdCell); }
+      else { clearSel(); ui.msel[holdCell] = true; }   // a new swipe: a new selection
+    }
+    lastCell = c;
+    if (brushing) { ui.sel = c; brushCell(c); } else { ui.msel[c] = true; ui.redTouch = c; refreshControls(); }
+    draw(); return;
+  }
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); draw(); }
 });
-function up() {
+function up(e) {
   clearTimeout(holdTimer);
   if (!down) return; down = false; lastErased = -1;
-  if (ui.multi && ui.drawing && !ui.eraser && chain.length) {
-    var ch = chain; chain = []; var any = false; batch = true; batchPushed = false;
-    if (ch.length === 1) any = toggleLink(ch[0], ch[0], ui.drawColor); else for (var i = 1; i < ch.length; i++) any = toggleLink(ch[i - 1], ch[i], ui.drawColor) || any;
-    batch = false; if (any) afterChange(); else draw();
+  if (drawing() && !ui.eraser) {
+    if (chain.length) {
+      var ch = chain; chain = []; var any = false; batch = true; batchPushed = false;
+      if (ch.length === 1) any = toggleLink(ch[0], ch[0], ui.drawColor); else for (var i = 1; i < ch.length; i++) any = toggleLink(ch[i - 1], ch[i], ui.drawColor) || any;
+      batch = false; if (any) afterChange(); else draw();
+    }
+    return;
+  }
+  if (ui.quick && !ui.eraser) {
+    if (brushing) { brushing = false; brushEnd(); }
+    else if (!moved && !peeked && holdCell >= 0 && e.type === 'pointerup') {
+      // a tap: as before — selects the cell / puts the picked digit there / picks a digit from the board
+      clearSel(); peekCell = -1;
+      if (holdCell !== ui.sel) { ui.sel = holdCell; onCellSelected(); }
+      onCellTapped(holdCell);
+    }
+    holdCell = -1; refresh();
   }
 }
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+// a swipe in «Быстрый» with a digit / colour picked: it goes into every cell the finger passes, as one move;
+// notes and colours are added if the first cell lacks them, otherwise removed
+var brushAdd = -1, brushAny = false, brushMistake = false, brushOk = -1;
+function brushStart() { batch = true; batchPushed = false; brushAdd = -1; brushAny = false; brushMistake = false; brushOk = -1; }
+function brushCell(c) {
+  var d = ui.qd; if (g.status || c < 0 || !d || isGiven(c)) return;
+  if (ui.mode === MODE_COLOR) {
+    if (d > 3 || g.value[c]) return; var has = hasColor(c, d); if (brushAdd < 0) brushAdd = has ? 0 : 1;
+    if (has !== (brushAdd === 1)) brushAny = toggleColor(c, d) || brushAny;
+  } else if (ui.mode !== MODE_ANSWER) {
+    if (g.value[c]) return; var hn = hasNote(c, d, ui.mode); if (brushAdd < 0) brushAdd = hn ? 0 : 1;
+    if (brushAdd === 1 && placedCount(d) >= 9) return;
+    if (hn !== (brushAdd === 1)) brushAny = (ui.mode === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d)) || brushAny;
+  } else {
+    if (!canAnswer(c) || placedCount(d) >= 9 || (g.wrong[c] && g.value[c] === d)) return;
+    brushAny = true; if (answer(c, d)) brushOk = c; else brushMistake = true;
+  }
+  vib(8); refreshControls();
+}
+function brushEnd() {
+  batch = false;
+  if (g.status) { onWon(); return; }
+  if (brushOk >= 0) celebrate(brushOk, ui.qd);
+  if (brushMistake) { onMistake(); return; }
+  if (brushAny) afterChange(); else refresh();
+}
 
 // ------------------------------------------------------------------ input (as MainActivity)
 function cellTakesInput(c) { if (c < 0 || g.status || isGiven(c)) return false; return ui.mode === MODE_ANSWER ? canAnswer(c) : g.value[c] === 0; }
@@ -578,19 +632,19 @@ function input(d) {
 }
 function digitKey(d) {
   if (!started || paused) return;
-  ui.peek = 0; ui.eraser = false;
-  if (ui.multi) { multiInput(d); return; }
+  ui.peek = 0; ui.eraser = false; peekCell = -1;
+  if (ui.quick && hasSel()) { selInput(d); return; }
   if (placedCount(d) >= 9 && !g.status && !(ui.mode !== MODE_ANSWER && ui.sel >= 0 && noteHas(ui.sel, d))) return;
   if (ui.quick) {
     if ((ui.qd === 0 || ui.chosen) && cellTakesInput(ui.sel)) { ui.anchor = ui.sel; input(d); if (!g.status && !(ui.mode === MODE_ANSWER && placedCount(d) >= 9)) ui.qd = d; refresh(); }
     else { ui.qd = ui.qd === d ? 0 : d; ui.anchor = -1; ui.sel = -1; refresh(); }
   } else input(d);
 }
-function peekKey(d) { if (!started || paused) return; peekCell = -1; if (ui.quick) ui.qd = 0; if (!ui.multi) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
+function peekKey(d) { if (!started || paused) return; peekCell = -1; if (ui.quick) ui.qd = 0; if (!hasSel()) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
 function colorKey(k) {
-  if (!started || paused) return; ui.eraser = false;
-  if (ui.multi && ui.drawing) { ui.drawColor = k; refresh(); return; }
-  if (ui.multi) { multiInput(k); return; }
+  if (!started || paused) return; ui.eraser = false; peekCell = -1;
+  if (drawing()) { ui.drawColor = k; refresh(); return; }   // the colour of the next lines
+  if (ui.quick && hasSel()) { selInput(k); return; }
   if (ui.quick) {
     if ((ui.qd === 0 || ui.chosen) && cellTakesInput(ui.sel)) { ui.anchor = ui.sel; input(k); ui.qd = k; refresh(); }
     else { ui.qd = ui.qd === k ? 0 : k; ui.anchor = -1; ui.sel = -1; refresh(); }
@@ -599,43 +653,33 @@ function colorKey(k) {
 function setMode(m) {
   if (!started || paused) return; ui.peek = 0;
   if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; ui.mode = m; refresh(); return; }
-  if (m === ui.mode) m = (m === MODE_ANSWER || m === MODE_COLOR) ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
+  // the same mode again: «Цвет» ↔ «Связь»; «Ответ» → the notes mode used last; «Угол» ↔ «Центр»
+  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; refresh(); return; }
+  if (m === ui.mode) m = m === MODE_ANSWER ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
   if (m <= MODE_CENTER) ui.lastNote = m;
   if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
-  ui.mode = m; if (m !== MODE_COLOR) ui.drawing = false; refresh();
-}
-function colorHold() {
-  if (!started || paused || g.status) return;
-  if (!ui.multi) { tip(t.drawOnlyRed); return; }
-  vib(20); ui.drawing = !ui.drawing; ui.eraser = false;
-  if (ui.drawing) { if (ui.mode !== MODE_COLOR) { ui.qd = 0; ui.mode = MODE_COLOR; } var cm = commonColor(); if (cm) ui.drawColor = cm; }
-  refresh();
+  ui.mode = m; refresh();
 }
 function speedTap() {
-  if (!started || paused || g.status) return; ui.eraser = false;
-  if (ui.multi) { leaveRed(false); return; }
+  if (!started || paused || g.status) return; ui.eraser = false; clearSel();
+  // what is lit on the board (a held key or cell) stays lit
   if (ui.quick && ui.qd && ui.anchor >= 0) ui.sel = ui.anchor;
   ui.quick = !ui.quick; ui.qd = 0; ui.chosen = false;
   var sc = ui.sel; if (ui.quick && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
   refresh();
 }
-function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
-function enterRed() {
-  ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
-  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redTouch = -1; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; refresh();   // a held key's digit stays lit
-}
-function leaveRed(toBlue) {
-  peekCell = -1; ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
-  ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
-  if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
-  ui.redCur = -1; ui.redTouch = -1;
-  var one = multiCells(); if (one.length === 1) { ui.sel = one[0]; ui.qd = 0; ui.anchor = -1; ui.chosen = false; }   // one cell selected: the cursor goes there
-  // into the blue mode with a digit cell under the cursor: that digit is picked, as by a tap from the white mode
-  var sc = ui.sel; if (toBlue && !ui.qd && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
-  ui.msel.fill(false); ui.fresh = false; refresh();
-}
 function multiCells() { var r = []; for (var c = 0; c < 81; c++) if (ui.msel[c]) r.push(c); return r; }
-function commonColor() { var cs2 = multiCells(); if (!cs2.length) return 0; for (var k = 1; k <= 3; k++) if (cs2.every(function (c) { return hasColor(c, k); })) return k; return 0; }
+/** A key with cells selected by a swipe: it goes into all of them, the selection goes, the key stays picked. */
+function selInput(d) {
+  multiInput(d); clearSel();
+  if (!g.status && (ui.mode === MODE_COLOR || placedCount(d) < 9)) { ui.qd = d; ui.anchor = -1; ui.chosen = false; ui.sel = -1; }
+  refresh();
+}
+function eraseSel() {
+  if (g.status) return; var any = false; batch = true; batchPushed = false;
+  multiCells().forEach(function (c) { any = eraseFull(c) || any; });
+  batch = false; clearSel(); if (any) afterChange(); else refresh();
+}
 function multiInput(d) {
   peekCell = -1;
   if (g.status) return; var cs2 = multiCells(); if (!cs2.length) return;
@@ -652,18 +696,17 @@ function multiInput(d) {
   if (g.status) { onWon(); return; }
   if (lastOk >= 0) celebrate(lastOk, d);
   if (mistake) { onMistake(); return; }
-  if (changed) ui.fresh = true;   // the next touch starts a new selection
   if (changed) afterChange();
 }
 function eraserTap() {
   if (!started || paused || g.status) return;
   if (ui.eraser) { ui.eraser = false; refresh(); return; }
-  if (ui.quick || ui.multi) { ui.eraser = true; ui.drawing = false; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh(); return; }
+  if (ui.quick && hasSel()) { eraseSel(); return; }   // cells selected by a swipe: all of them are cleaned
+  if (ui.quick) { ui.eraser = true; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh(); return; }
   if (ui.sel >= 0 && eraseFull(ui.sel)) afterChange();
 }
 function applyUi(u) {
   if (!u) return;
-  if (ui.multi) { ui.mode = u[0]; ui.lastNote = u[1]; if (ui.mode !== MODE_COLOR) ui.drawing = false; ui.eraser = false; ui.peek = 0; return; }
   if (u[2] === 2) { ui.mode = u[0]; ui.lastNote = u[1]; ui.eraser = false; ui.peek = 0; return; }
   ui.mode = u[0]; ui.lastNote = u[1]; ui.quick = u[2] === 1; ui.qd = u[3]; ui.sel = u[4]; ui.anchor = u[5]; ui.chosen = u[6] === 1; ui.eraser = false; ui.peek = 0;
 }
@@ -680,10 +723,10 @@ function refresh() { refreshControls(); draw(); }
 
 // ------------------------------------------------------------------ the controls (as refreshControls)
 function refreshControls() {
-  var sc = ui.sel, mc = ui.multi ? multiCells() : null;
+  var sc = ui.sel, mc = ui.quick && hasSel() ? multiCells() : null;
   for (var d = 1; d <= 9; d++) {
     var k = keys[d], left = 9 - placedCount(d), raised = false;
-    if (ui.multi) { raised = mc.length > 0 && mc.every(function (c) { return ui.mode === MODE_ANSWER ? g.value[c] === d : !g.value[c] && hasNote(c, d, ui.mode); }) && ui.mode !== MODE_COLOR; }
+    if (mc) { raised = mc.length > 0 && mc.every(function (c) { return ui.mode === MODE_ANSWER ? g.value[c] === d : !g.value[c] && hasNote(c, d, ui.mode); }) && ui.mode !== MODE_COLOR; }
     else if (sc >= 0 && !g.value[sc]) raised = ui.mode === MODE_CORNER ? g.corner[sc].indexOf(String(d)) >= 0 : ui.mode === MODE_CENTER && (g.center[sc] & (1 << d)) !== 0;
     k.className = 'key' + (ui.quick && ui.qd === d ? ' chosen' : '') + (raised ? ' raised' : '') + (left <= 0 ? ' done' : '');
     var dg = k.firstChild, h = 62;
@@ -696,7 +739,8 @@ function refreshControls() {
   $('pad').hidden = colorMode; $('cpad').hidden = !colorMode;
   for (var c = 1; c <= 3; c++) {
     var chosen, rz;
-    if (ui.multi) { chosen = ui.drawing && ui.drawColor === c; rz = mc.length > 0 && mc.every(function (x) { return hasColor(x, c); }); }
+    if (drawing()) { chosen = ui.drawColor === c; rz = false; }
+    else if (mc) { chosen = false; rz = mc.length > 0 && mc.every(function (x) { return hasColor(x, c); }); }
     else { chosen = ui.quick && colorMode && ui.qd === c; rz = sc >= 0 && hasColor(sc, c); }
     ckeys[c].className = 'key ckey' + (chosen ? ' chosen' : '') + (rz ? ' raised' : ''); ckeys[c].lastChild.textContent = t.colors[c];
   }
@@ -708,10 +752,10 @@ function refreshControls() {
   $('bWrite').style.visibility = !g.status && writeAllCount() > 0 ? 'visible' : 'hidden';
   [MODE_CORNER, MODE_CENTER, MODE_COLOR, MODE_ANSWER].forEach(function (m) {
     var b = tabs[m]; b.className = 'tab' + (m === ui.mode && !ui.eraser ? ' on' : '') + (ui.eraser ? ' dim' : '');
-    drawTabIcon(b.firstChild, m, m === ui.mode && !ui.eraser, m === MODE_COLOR && ui.multi && ui.drawing ? ui.drawColor : 0);
+    drawTabIcon(b.firstChild, m, m === ui.mode && !ui.eraser, m === MODE_COLOR && ui.link ? ui.drawColor : 0);
   });
-  $('bSpeed').textContent = ui.multi ? t.multi : ui.quick ? t.quick : t.slow;
-  $('bSpeed').className = 'pill' + (ui.multi ? ' dng' : ui.quick ? ' acc' : '');
+  $('bSpeed').textContent = ui.quick ? t.quick : t.slow;
+  $('bSpeed').className = 'pill' + (ui.quick ? ' acc' : '');
   $('bUndo').className = 'pill' + (undoS.length && !g.status ? '' : ' off');
   $('bRedo').className = 'pill' + (redoS.length && !g.status ? '' : ' off');
   $('bErase').className = 'pill' + (ui.eraser ? ' filled' : '');
@@ -733,7 +777,7 @@ function drawTabIcon(c, m, on, link) {
   else if (m === MODE_ANSWER) { x.font = '600 15px system-ui'; x.fillText('1', 11, 12); }
   else if (link) linkIcon(x, 3, 3, 16, CELL[link]);
   else for (var j = 0; j < 3; j++) { x.fillStyle = CELL[j + 1]; x.fillRect(3.6 + j * 6.4, 8.4, 5.2, 5.2); }
-  c.nextSibling.textContent = [t.corner, t.center, t.answer, t.color][m];
+  c.nextSibling.textContent = [t.corner, t.center, t.answer, m === MODE_COLOR && ui.link ? t.link : t.color][m];
 }
 
 // ------------------------------------------------------------------ hint (three steps, as in the game)
@@ -748,7 +792,7 @@ function hintText(h) {
 }
 function onHint() {
   if (!started || paused || g.status) return;
-  if (ui.multi) leaveRed(!!(ui.preRed && ui.preRed[0] === 1));
+  clearSel();   // the hint shows one cell
   if (pendingHint && hintNudge) { hintNudge = false; ui.sel = pendingHint[0]; banner(hintText(pendingHint)); save(); refresh(); return; }
   if (pendingHint && canAnswer(pendingHint[0])) { var c = pendingHint[0], d = pendingHint[1]; clearHint(); ui.sel = c; answer(c, d); if (g.status) { onWon(); return; } celebrate(c, d); afterChange(); return; }
   var h = SX.hint(correctValues(), g.solution); if (!h) return;
@@ -804,14 +848,14 @@ function friendName() { return nick || t.friend; }
 function fname() { return goldNick ? '<b style="color:' + C.gold + '">' + esc(friendName()) + '</b>' : esc(friendName()); }
 function updateLevelLine() {
   // the level and the depth, the goal on its own line below (as in the game)
-  var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
+  var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + stepsText(DEN) + ')' : '') : '');
   $('lvl').innerHTML = esc(s) + (g.chMs >= 0 ? '<br>' + esc(f(t.goal, fmt(g.chMs))) : '');
 }
 function infoRows() {
   var r = '';
   if (nick) r += '<div class="r"><span>' + t.from + '</span><b>' + esc(nick) + '</b></div>';
   r += '<div class="r"><span>' + t.level + '</span><b>' + levelName() + '</b></div>';
-  if (SE > 0) r += '<div class="r"><span>' + t.depth + '</span><b>' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') + '</b></div>';
+  if (SE > 0) r += '<div class="r"><span>' + t.depth + '</span><b>' + seText(SE) + (DEN > 0 ? ' (' + stepsText(DEN) + ')' : '') + '</b></div>';
   if (g.chMs >= 0) {
     r += '<div class="r"><span>' + (nick ? f(t.ftimeNick, esc(nick)) : t.ftime) + '</span><b>' + fmt(g.chMs) + '</b></div>';
     r += '<div class="r"><span>' + t.mistakesL + '</span><b>' + g.chErr + '</b></div><div class="r"><span>' + t.hintsL + '</span><b>' + g.chHints + '</b></div>';
@@ -826,7 +870,7 @@ function showStart() {
   var st = document.createElement('div'); st.id = 'start';
   var draw1 = function () {
     // compact, so the whole board stays in view above it
-    var meta = levelName() + (SE > 0 ? ' · SE <b>' + seText(SE) + '</b>' + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
+    var meta = levelName() + (SE > 0 ? ' · SE <b>' + seText(SE) + '</b>' + (DEN > 0 ? ' (' + stepsText(DEN) + ')' : '') : '');
     if (g.chMs >= 0) meta += '<br>' + f(t.chFriend, '<b>' + fmt(g.chMs) + '</b>', g.chErr, g.chHints, fname());
     st.innerHTML = '<div class="card" style="padding:12px 14px 10px"><div class="head"><img src="/icon.png" alt="" style="width:32px;height:32px;border-radius:9px"><h2 style="font-size:18px">' +
       (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + '</h2>' + langBtn() + '</div>' +
