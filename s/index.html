@@ -2,207 +2,891 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Судоку · Sudoky</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<meta name="description" content="Вам прислали судоку — откройте, чтобы увидеть уровень и результат. Someone sent you a sudoku — open it to see the level and the result.">
+<meta name="description" content="Вам прислали судоку — сыграйте прямо здесь или откройте в игре. Someone sent you a sudoku — play it right here or open it in the game.">
 <!-- the preview card in messengers: the same for every link (the page is static) -->
 <meta property="og:site_name" content="Судоку · Sudoky">
 <meta property="og:title" content="Вам прислали судоку · Someone sent you a sudoku">
-<meta property="og:description" content="Откройте, чтобы увидеть уровень и результат. Open it to see the level and the result.">
+<meta property="og:description" content="Сыграйте прямо в браузере или откройте в игре. Play it in the browser or open it in the game.">
 <meta property="og:image" content="https://airatik2004.github.io/icon.png">
 <meta property="og:type" content="website">
 <style>
-  :root { --bg:#F3F4F9; --card:#fff; --text:#1c1d26; --dim:#6b6e80; --accent:#3D5AFE; --onaccent:#fff; --line:#E1E4EE; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#14151c; --card:#1f2029; --text:#ececf2; --dim:#9a9cb0; --accent:#8193FF; --onaccent:#14151c; --line:#2A2D3B; } }
-  * { box-sizing:border-box; }
-  html, body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, -apple-system, Roboto, sans-serif; }
-  body { min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:12px; }
-  .card { position:relative; width:100%; max-width:400px; background:var(--card); border-radius:22px; padding:16px 16px 14px; }
-  .head { display:flex; align-items:center; gap:12px; margin:0 62px 12px 0; }
-  .head img { width:44px; height:44px; border-radius:12px; flex:none; }
-  h1 { font-size:19px; line-height:1.2; margin:0; }
-  .lang { position:absolute; top:14px; right:14px; font:12px system-ui, sans-serif; color:var(--dim); background:none; cursor:pointer;
-          border:1px solid var(--line); border-radius:8px; padding:3px 7px; }
-  .lang b { color:var(--accent); font-weight:700; }
-  .lang span { margin:0 3px; opacity:.6; }
-  .grid { display:grid; grid-template-columns:repeat(9,1fr); width:100%; max-width:min(100%, 52vh); aspect-ratio:1; margin:0 auto;
-          border:2px solid var(--text); border-radius:6px; overflow:hidden; }
-  .grid div { display:flex; align-items:center; justify-content:center; font:600 clamp(13px,4.4vw,19px) system-ui, sans-serif;
-              border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
-  .grid div.r { border-right:2px solid var(--text); }
-  .grid div.b { border-bottom:2px solid var(--text); }
-  .meta { text-align:center; font-size:13.5px; color:var(--dim); margin:8px 0 12px; }
-  .meta b { color:var(--text); }
-  p.lead { color:var(--dim); margin:0 0 14px; }
-  a.btn { display:block; border-radius:999px; padding:13px 10px; font:600 15.5px system-ui, sans-serif; text-align:center; text-decoration:none; }
-  .main { background:var(--accent); color:var(--onaccent); }
-  .alt { color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
-  .get { margin-top:12px; }
-  .get .label { text-align:center; font-size:13px; color:var(--dim); margin-bottom:8px; }
-  .row { display:flex; gap:8px; }
-  .row a { flex:1; padding:11px 6px; font-size:14.5px; }
+  :root { --bg:#F3F4F9; --surface:#FFFFFF; --text:#1B1D29; --dim:#8A8FA3; --accent:#3D5AFE; --soft:#E3E8FF; --line:#E1E4EE;
+          --error:#E53935; --ok:#2E9E62; --onaccent:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111219; --surface:#1B1D27; --text:#E8EAF2; --dim:#7C8196; --accent:#8193FF; --soft:#2A2F52;
+          --line:#2A2D3B; --error:#FF6B6B; --ok:#5BD394; --onaccent:#fff; } }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:15px/1.35 system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+               overscroll-behavior:none; }
+  body { display:flex; justify-content:center; }
+  button { font:inherit; color:inherit; border:0; background:none; padding:0; cursor:pointer; touch-action:manipulation; }
+  #app { position:relative; width:100%; max-width:480px; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+         user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  .pill { height:100%; width:100%; border-radius:999px; background:var(--surface); font-weight:600; font-size:15px; display:flex; align-items:center;
+          justify-content:center; white-space:nowrap; overflow:hidden; padding:0 8px; }
+  .pill:active, .pill.pressed { background:var(--soft); }
+  .pill.filled { background:var(--accent); color:#fff; }
+  .pill.acc { color:var(--accent); } .pill.dng { color:var(--error); } .pill.off { color:var(--dim); }
+  .pill.filled.dng { background:var(--error); color:#fff; }
+  .top { display:flex; align-items:center; padding:6px 8px 0; gap:4px; }
+  .top .b { width:96px; height:44px; flex:none; } .top .b.r { width:118px; }
+  .mid { flex:1; text-align:center; min-width:0; }
+  #lvl { font-size:13px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #timer { font-size:20px; font-weight:600; }
+  #errs { font-size:12px; color:var(--dim); white-space:nowrap; }
+  .row2 { display:flex; align-items:center; justify-content:space-between; padding:2px 8px 0; height:46px; }
+  .row2 .b { width:96px; height:42px; } .row2 .h { width:120px; height:42px; } .row2 .w { width:128px; height:42px; }
+  #boardWrap { flex:1; min-height:0; position:relative; margin:6px 8px 4px; }
+  #board { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  #banner { margin:0 10px 6px; padding:10px 14px; border-radius:14px; background:var(--soft); font-size:14px; line-height:1.4; display:none; }
+  #banner .more { color:var(--dim); font-size:12.5px; display:block; margin-top:4px; }
+  .acts { display:flex; padding:0 6px; height:48px; } .acts > * { flex:1; }
+  .acts .pill { font-size:14.5px; padding:0 4px; }
+  .pad { display:flex; padding:9px 5px 4px; height:75px; } .pad > * { flex:1; }
+  .key { position:relative; margin:0 2.5px; height:62px; border-radius:10px; background:var(--surface); transition:transform .12s; }
+  .key.raised { transform:translateY(-7px); box-shadow:inset 0 0 0 1.6px var(--accent); }
+  .key.chosen { background:var(--accent); color:#fff; }
+  .key.pressed { background:var(--soft); }
+  .key .dg { position:absolute; left:0; right:0; text-align:center; font-weight:600; }
+  .key .ct { position:absolute; left:0; right:0; bottom:5px; text-align:center; font-size:11px; color:var(--dim); }
+  .key.chosen .ct { color:rgba(255,255,255,.85); } .key.done .dg { color:var(--dim); }
+  .ckey .dot { position:absolute; left:50%; top:42%; width:44%; aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%; max-width:28px; }
+  .ckey.chosen { background:var(--soft); color:inherit; box-shadow:inset 0 0 0 2.4px var(--accent); }
+  .ckey.chosen .ct { color:var(--dim); }
+  .tabs { display:flex; padding:0 5px 8px; height:74px; } .tabs > * { flex:1; }
+  .tab { position:relative; margin:2.5px; border-radius:12px; background:var(--surface); color:var(--dim); }
+  .tab.on { background:var(--soft); color:var(--accent); font-weight:600; }
+  .tab canvas { position:absolute; left:50%; top:8px; transform:translateX(-50%); }
+  .tab span { position:absolute; left:0; right:0; bottom:7px; font-size:12px; text-align:center; }
+  .dim { opacity:.35; }
+  /* overlays */
+  .ov { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:20px; z-index:10; }
+  .ov.pause { background:var(--bg); flex-direction:column; }
+  .ov.win { background:rgba(0,0,0,.6); }
+  .card { width:100%; max-width:400px; background:var(--surface); border-radius:24px; padding:18px 18px 16px; }
+  .card h2 { margin:0; font-size:21px; }
+  .card .info { color:var(--dim); text-align:center; }
+  .box { background:var(--bg); border-radius:14px; padding:6px 14px; margin-top:10px; }
+  .box .r { display:flex; justify-content:space-between; padding:5px 0; font-size:14px; }
+  .box .r b { font-size:15px; }
+  .btns { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .btns .pill { height:50px; }
+  .card .pill:not(.filled) { background:var(--bg); }
+  .two { display:flex; gap:8px; } .two .pill { flex:1; }
+  .lang { font:12px system-ui, sans-serif; color:var(--dim); border:1px solid var(--line); border-radius:8px; padding:3px 7px; }
+  .lang b { color:var(--accent); } .lang span { margin:0 3px; opacity:.6; }
+  .head { display:flex; align-items:center; gap:10px; }
+  .head img { width:40px; height:40px; border-radius:11px; }
+  .head h2 { flex:1; }
   .note { text-align:center; font-size:12px; color:var(--dim); margin-top:8px; }
+  .plates { width:100%; max-width:400px; margin-top:14px; display:flex; gap:8px; } .plates .pill { height:50px; flex:1; font-size:14.5px; }
+  #start { padding:4px 10px 10px; }
+  #app.starting .acts, #app.starting .pad, #app.starting .tabs { display:none; }
+  #start .card { max-width:none; }
+  #tip { position:absolute; left:20px; right:20px; bottom:200px; z-index:30; background:var(--surface); border:1.5px solid var(--accent);
+         border-radius:16px; padding:12px 16px; text-align:center; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.25); display:none; }
+  .plain { width:100%; max-width:400px; margin:auto; padding:16px; }
   [hidden] { display:none !important; }
 </style>
 </head>
 <body>
-<main class="card">
-  <button class="lang" id="switch" type="button"></button>
-  <div class="head"><img src="/icon.png" alt=""><h1 id="title"></h1></div>
-  <div class="grid" id="grid" hidden></div>
-  <div class="meta" id="meta" hidden></div>
-  <p class="lead" id="lead" hidden></p>
-  <a class="btn main" id="open" href="#" hidden></a>
-  <div class="get" id="get">
-    <div class="label" id="getLabel"></div>
-    <div class="row" id="stores"></div>
-    <div class="note" id="apkNote"></div>
-  </div>
-</main>
+<div id="app"></div>
+<script src="solver.js"></script>
 <script>
 (function () {
-  var APK = 'https://airatik2004.github.io/sudoky.apk';
-  var RUSTORE = 'https://www.rustore.ru/catalog/app/ru.sudoky';
-  var TXT = {
-    ru: {
-      titleShared: 'Вам прислали судоку', titleChallenge: 'Побей моё время!', titlePlain: 'Судоку',
-      leadPlain: 'Судоку без рекламы: 7 уровней, оценка сложности по шкале SE, тренировка приёмов, своё судоку.',
-      noapp: 'Похоже, игры ещё нет — установите её, потом снова нажмите на ссылку.',
-      open: 'Открыть в игре', getLabel: 'Нет игры? Установите:', getPlain: 'Установить:',
-      apk: 'APK (GitHub)', rustore: 'RuStore',
-      apkNote: 'APK ставится напрямую — Android спросит разрешение',
-      other: 'EN',
-      levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
-      friend: 'Друг', mistakes: 'ошибок', hints: 'подсказок', dec: ','
-    },
-    en: {
-      titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
-      leadPlain: 'Sudoku without ads: 7 levels, difficulty on the SE scale, technique practice, your own puzzles.',
-      noapp: 'It looks like you don\'t have the game yet — install it, then tap the link again.',
-      open: 'Open in the game', getLabel: 'No game yet? Install it:', getPlain: 'Install:',
-      apk: 'APK (GitHub)', rustore: 'RuStore (Russia)',
-      apkNote: 'The APK installs directly — Android will ask for permission',
-      other: 'RU',
-      levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
-      friend: 'Friend', mistakes: 'mistakes', hints: 'hints', dec: '.'
-    }
-  };
-  var q = location.search;
-  var m = /[?&]c=([^&#]+)/.exec(q) || /^#(.+)$/.exec(location.hash);
-  var code = m ? decodeURIComponent(m[1]).trim() : '';
-  if (!/^[1-8]-[0-9A-Za-z]{12,60}(~\d{1,6}\.\d{1,3}\.\d{1,3})?$/.test(code)) code = '';
-  var forced = /[?&]lang=(ru|en)/.exec(q);
-  // the sender's nickname (from his profile): shown instead of «Друг»
-  var nm = /[?&]n=([^&#]+)/.exec(q), nick = '';
-  try { nick = nm ? decodeURIComponent(nm[1].replace(/\+/g, ' ')).replace(/[;~,|<>&"]/g, ' ').trim().slice(0, 20) : ''; } catch (e) { nick = ''; }
-  var nav = (navigator.language || 'en').toLowerCase().slice(0, 2);
-  var $ = function (id) { return document.getElementById(id); };
-  var t, lang;
-  // the language switch re-draws the page in place: going to a /s/ address would open the game (Android App Links)
-  $('switch').onclick = function () {
-    render(lang === 'ru' ? 'en' : 'ru');
-    try { var u = new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null, '', u.pathname + u.search); } catch (e) { }
-  };
-  render(forced ? forced[1] : (['ru', 'uk', 'be', 'kk'].indexOf(nav) >= 0 ? 'ru' : 'en'));
+'use strict';
+var APK = 'https://airatik2004.github.io/sudoky.apk';
+var RUSTORE = 'https://www.rustore.ru/catalog/app/ru.sudoky';
+var ANDROID = /Android/i.test(navigator.userAgent);
+var $ = function (id) { return document.getElementById(id); };
 
-  function render(l) {
-  lang = l;
-  t = TXT[lang];
-  document.documentElement.lang = lang;
-  ['stores', 'grid'].forEach(function (id) { $(id).innerHTML = ''; });
-  ['grid', 'meta', 'lead', 'open'].forEach(function (id) { $(id).hidden = true; });
+// ------------------------------------------------------------------ texts
+var TX = {
+  ru: {
+    titleShared: 'Вам прислали судоку', titleChallenge: 'Побей моё время!', titlePlain: 'Судоку',
+    leadPlain: 'Судоку без рекламы: 7 уровней, оценка сложности по шкале SE, тренировка приёмов, своё судоку.',
+    noapp: 'Похоже, игры ещё нет — установите её, потом снова нажмите на ссылку.',
+    open: 'Открыть в игре', playHere: 'Играть здесь', contHere: 'Продолжить здесь · {1}', getLabel: 'Нет игры? Установите:', getPlain: 'Установить:',
+    apk: 'Скачать APK', rustore: 'RuStore', apkNote: 'APK ставится напрямую — Android спросит разрешение', playApp: 'Играть в приложении',
+    other: 'EN', levels: ['Новичок', 'Лёгкий', 'Средний', 'Сложный', 'Эксперт', 'Мастер', 'Гроссмейстер', 'Для Димы'],
+    friend: 'Друг', from: 'От', level: 'Уровень', depth: 'Глубина (SE)', ftime: 'Время друга', ftimeNick: '{1} — время', mistakesL: 'Ошибки', hintsL: 'Подсказки',
+    dec: ',', menu: '‹ Меню', newGame: 'Новая игра', pause: '❚❚ Пауза', hint: '💡 Подсказка', hintWhere: '💡 Где?', hintPlace: '💡 Поставить',
+    writeAll: '✎ Записать всё', undo: '↶ Отменить', redo: '↷ Вернуть', erase: 'Ластик', slow: 'Медленный', quick: 'Быстрый', multi: 'Выделение',
+    corner: 'Угол', center: 'Центр', color: 'Цвет', answer: 'Ответ', colors: ['', 'Красный', 'Зелёный', 'Синий'],
+    errors: 'Ошибок: {1}', hints: 'Подсказок: {1}', goal: 'цель {1}', pauseTitle: 'Пауза', resume: '▶  Продолжить',
+    solved: 'Решено', counts: 'Ошибок: {1} · Подсказок: {2}', seLine: 'Сложность по шкале SE ≈ {1}',
+    chFriend: '{4}: {1} · ошибок {2} · подсказок {3}', faster: 'Вы быстрее на {1}!', slower: '{2} быстрее на {1}', tie: 'Ровно столько же!',
+    onlyApp: 'Это есть только в игре — она на Android.', onlyAndroid: 'Игра есть только на Android: скачайте APK на телефон.',
+    drawOnlyRed: 'Линии рисуются в режиме «Выделение»: сначала подержите кнопку «Медленный» / «Быстрый»',
+    confirmWrite: 'Записать {1} — все клетки с одной заметкой станут ответами?', yes: 'Записать', cancel: 'Отмена',
+    unitRow: 'строке', unitCol: 'столбце', unitBox: 'блоке',
+    hHidden: 'Скрытый сингл: в этом {1} одна из цифр может стоять только в выделенной клетке.',
+    hNaked: 'Явный сингл: в выделенную клетку подходит только одна цифра.',
+    hTech: 'Нужен приём «{1}». После него в выделенной клетке остаётся единственный вариант.',
+    hGuess: 'Логических ходов не осталось, придётся перебирать варианты. Начните с выделенной клетки — у неё меньше всего кандидатов.',
+    hPress: 'Нажмите «💡 Поставить», чтобы поставить цифру.',
+    hNudge: 'Здесь поможет приём «{1}». Попробуйте найти его сами — или нажмите «💡 Где?», чтобы увидеть клетку.',
+    hNudgeGuess: 'Логических ходов не осталось, придётся перебирать варианты. Нажмите «💡 Где?», чтобы увидеть, с какой клетки начать.',
+    hMore: 'Как работает приём — в справке игры на Android.',
+    tech: {hidden: 'скрытый сингл', naked: 'явный сингл', 1: 'X-wing', 2: 'небоскрёб', 3: 'рыба-меч', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
+           7: 'пустой прямоугольник', 8: 'прямоугольник уникальности', 9: 'X-цепочка', 10: 'M-wing', 11: 'S-wing', 12: 'XY-цепочка',
+           13: 'рыба с плавником', 14: 'BUG+1', 15: 'блокировка кандидатов', 16: 'пары', 17: 'тройки', 20: 'воздушный змей', 21: 'рыба-меч с плавником'}
+  },
+  en: {
+    titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
+    leadPlain: 'Sudoku without ads: 7 levels, difficulty on the SE scale, technique practice, your own puzzles.',
+    noapp: 'It looks like you don\'t have the game yet — install it, then tap the link again.',
+    open: 'Open in the game', playHere: 'Play here', contHere: 'Continue here · {1}', getLabel: 'No game yet? Install it:', getPlain: 'Install:',
+    apk: 'Download APK', rustore: 'RuStore (Russia)', apkNote: 'The APK installs directly — Android will ask for permission', playApp: 'Play in the app',
+    other: 'RU', levels: ['Novice', 'Easy', 'Medium', 'Hard', 'Expert', 'Master', 'Grandmaster', 'For Dima'],
+    friend: 'Friend', from: 'From', level: 'Level', depth: 'Depth (SE)', ftime: 'Friend\'s time', ftimeNick: '{1} — time', mistakesL: 'Mistakes', hintsL: 'Hints',
+    dec: '.', menu: '‹ Menu', newGame: 'New game', pause: '❚❚ Pause', hint: '💡 Hint', hintWhere: '💡 Where?', hintPlace: '💡 Place',
+    writeAll: '✎ Write all', undo: '↶ Undo', redo: '↷ Redo', erase: 'Eraser', slow: 'Slow', quick: 'Quick', multi: 'Select',
+    corner: 'Corner', center: 'Center', color: 'Color', answer: 'Answer', colors: ['', 'Red', 'Green', 'Blue'],
+    errors: 'Mistakes: {1}', hints: 'Hints: {1}', goal: 'goal {1}', pauseTitle: 'Pause', resume: '▶  Resume',
+    solved: 'Solved', counts: 'Mistakes: {1} · Hints: {2}', seLine: 'Difficulty on the SE scale ≈ {1}',
+    chFriend: '{4}: {1} · mistakes {2} · hints {3}', faster: 'You are faster by {1}!', slower: '{2} is faster by {1}', tie: 'Exactly the same!',
+    onlyApp: 'This is only in the game — it is on Android.', onlyAndroid: 'The game is only on Android: download the APK to your phone.',
+    drawOnlyRed: 'Lines are drawn in «Select» mode: hold the «Slow» / «Quick» button first',
+    confirmWrite: 'Write {1} — all cells with one note become answers?', yes: 'Write', cancel: 'Cancel',
+    unitRow: 'row', unitCol: 'column', unitBox: 'box',
+    hHidden: 'Hidden single: in this {1}, one of the digits can only go into the highlighted cell.',
+    hNaked: 'Naked single: only one digit fits the highlighted cell.',
+    hTech: 'You need the «{1}» technique. After it, only one option is left in the highlighted cell.',
+    hGuess: 'No logical moves left, you have to try options. Start with the highlighted cell — it has the fewest candidates.',
+    hPress: 'Tap «💡 Place» to put the digit in.',
+    hNudge: 'The «{1}» technique helps here. Try to find it yourself — or tap «💡 Where?» to see the cell.',
+    hNudgeGuess: 'No logical moves left, you have to try options. Tap «💡 Where?» to see which cell to start with.',
+    hMore: 'How the technique works — in the help of the game on Android.',
+    tech: {hidden: 'hidden single', naked: 'naked single', 1: 'X-wing', 2: 'Skyscraper', 3: 'Swordfish', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
+           7: 'empty rectangle', 8: 'unique rectangle', 9: 'X-chain', 10: 'M-wing', 11: 'S-wing', 12: 'XY-chain',
+           13: 'finned fish', 14: 'BUG+1', 15: 'locked candidates', 16: 'pairs', 17: 'triples', 20: '2-String Kite', 21: 'finned Swordfish'}
+  }
+};
+var lang, t;
+function f(s) { var a = arguments; return s.replace(/\{(\d)\}/g, function (m, i) { return a[+i] != null ? a[+i] : m; }); }
+function esc(x) { return String(x).replace(/[&<>"']/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
+function fmt(ms) { var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+  var two = function (v) { return v < 10 ? '0' + v : '' + v; }; return (h > 0 ? h + ':' + two(m) : two(m)) + ':' + two(x); }
 
-  // where to get the game: the APK (always the newest version) first, then the stores
-  [{ key: 'apk', url: APK }, { key: 'rustore', url: RUSTORE }].forEach(function (s, i) {
-    var a = document.createElement('a');
-    a.className = 'btn ' + (i === 0 && !code ? 'main' : 'alt');
-    a.href = s.url; a.textContent = t[s.key];
-    if (s.key === 'apk') a.setAttribute('download', 'Sudoky.apk');
-    $('stores').appendChild(a);
+// ------------------------------------------------------------------ the link
+var q = location.search;
+var m0 = /[?&]c=([^&#]+)/.exec(q) || /^#(.+)$/.exec(location.hash);
+var code = m0 ? decodeURIComponent(m0[1]).trim() : '';
+if (!/^[1-8]-[0-9A-Za-z]{12,60}(~\d{1,6}\.\d{1,3}\.\d{1,3})?$/.test(code)) code = '';
+var forced = /[?&]lang=(ru|en)/.exec(q);
+var nav = (navigator.language || 'en').toLowerCase().slice(0, 2);
+var nm = /[?&]n=([^&#]+)/.exec(q), nick = '';
+try { nick = nm ? decodeURIComponent(nm[1].replace(/\+/g, ' ')).replace(/[;~,|<>&"]/g, ' ').trim().slice(0, 20) : ''; } catch (e) { nick = ''; }
+var seM = /[?&]se=(\d{1,3})/.exec(q), dM = /[?&]d=(\d{1,2})/.exec(q);
+var SE = seM ? +seM[1] : -1, DEN = dM ? +dM[1] : 0;
+lang = forced ? forced[1] : (['ru', 'uk', 'be', 'kk'].indexOf(nav) >= 0 ? 'ru' : 'en');
+t = TX[lang];
+
+function decode(c) {
+  var t2 = c.indexOf('~'), res = null;
+  if (t2 > 0) { res = c.slice(t2 + 1).split('.').map(Number); c = c.slice(0, t2); }
+  var n = 0n, s = c.slice(2).toLowerCase();
+  for (var i = 0; i < s.length; i++) n = n * 36n + BigInt(parseInt(s[i], 36));
+  var p = new Array(81).fill(0);
+  for (var k = 80; k >= 0; k--) { var bit = n % 2n; n /= 2n; if (bit) { p[k] = Number(n % 9n) + 1; n /= 9n; } }
+  if (n !== 1n) return null;
+  return { level: parseInt(c[0], 10) - 1, cells: p, res: res, plain: c };
+}
+function seText(r) { return r >= 105 ? '10+' : r >= 90 ? '9+' : r >= 80 ? '8+' : r === 70 ? '7+' : Math.floor(r / 10) + t.dec + (r % 10); }
+
+var D = null;
+try { D = code ? decode(code) : null; } catch (e) { D = null; }
+var SOL = null;
+if (D) { SOL = new Array(81).fill(0); if (SX.countSolutions(D.cells, 2, SOL) !== 1) { D = null; } }
+if (!D) { plainPage(); return; }
+
+// ------------------------------------------------------------------ theme (as in the game)
+var dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+var C = dark ? { bg: '#111219', surface: '#1B1D27', text: '#E8EAF2', textDim: '#7C8196', accent: '#8193FF', accentSoft: '#2A2F52', unit: '#232637',
+  sameDigit: '#343B6E', selected: '#46519C', lineThin: '#34384A', lineThick: '#A0A6BF', given: '#E8EAF2', user: '#95A5FF', revealed: '#5BD394',
+  gold: '#F2C14E', error: '#FF6B6B', errorBg: '#5A2326', note: '#AAB0C6' }
+  : { bg: '#F3F4F9', surface: '#FFFFFF', text: '#1B1D29', textDim: '#8A8FA3', accent: '#3D5AFE', accentSoft: '#E3E8FF', unit: '#ECEFF8',
+  sameDigit: '#C9D3FF', selected: '#AFC0FF', lineThin: '#CDD1DE', lineThick: '#2E3247', given: '#1B1D29', user: '#2F4BE0', revealed: '#2E9E62',
+  gold: '#D4A017', error: '#E53935', errorBg: '#FFD6D6', note: '#555B73' };
+var CELL = ['', '#E53935', '#43A047', '#1E88E5'];
+function rgba(hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+
+// ------------------------------------------------------------------ game state (as GameState in the app)
+var MODE_CORNER = 0, MODE_CENTER = 1, MODE_ANSWER = 2, MODE_COLOR = 3;
+var g = {
+  level: D.level, puzzle: D.cells.slice(), solution: SOL, value: D.cells.slice(), corner: new Array(81).fill(''), center: new Array(81).fill(0),
+  color: new Array(81).fill(''), wrong: new Array(81).fill(false), links: [], errors: 0, hints: 0, elapsed: 0, status: 0,
+  chMs: D.res ? D.res[0] * 1000 : -1, chErr: D.res ? D.res[1] : 0, chHints: D.res ? D.res[2] : 0
+};
+var undoS = [], redoS = [], batch = false, batchPushed = false;
+var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
+  eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0, preRed: null };
+var pendingHint = null, hintNudge = false, hintCell = -1, hintUnit = -1;
+var started = false, paused = false, running = false, lastTick = 0;
+var KEY = 'sudoky:' + D.plain;
+
+function isGiven(c) { return g.puzzle[c] !== 0; }
+function snap() { return JSON.stringify({ v: g.value, k: g.corner, m: g.center, c: g.color, w: g.wrong, l: g.links,
+  u: [ui.mode, ui.lastNote, ui.multi ? 2 : ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0] }); }
+function restore(s) { var o = JSON.parse(s); g.value = o.v; g.corner = o.k; g.center = o.m; g.color = o.c; g.wrong = o.w; g.links = o.l; return o.u; }
+function pushUndo() { if (batch) { if (batchPushed) return; batchPushed = true; } undoS.push(snap()); if (undoS.length > 300) undoS.shift(); redoS = []; }
+function placedCount(d) { var n = 0; for (var i = 0; i < 81; i++) if (g.value[i] === d && !g.wrong[i]) n++; return n; }
+function hasColor(c, k) { return g.color[c].indexOf(String(k)) >= 0; }
+function toggleColor(c, k) { if (g.status || g.value[c]) return false; pushUndo(); var s = g.color[c], ks = String(k);
+  g.color[c] = s.indexOf(ks) >= 0 ? s.replace(ks, '') : s + ks; return true; }
+function toggleCorner(c, d) { if (g.status || g.value[c]) return false; pushUndo(); var s = g.corner[c], ds = String(d);
+  g.corner[c] = s.indexOf(ds) >= 0 ? s.replace(ds, '') : s + ds; return true; }
+function toggleCenter(c, d) { if (g.status || g.value[c]) return false; pushUndo(); g.center[c] ^= 1 << d; return true; }
+function moveNotes(c, toCenter) {
+  if (g.status || c < 0 || g.value[c]) return false;
+  if (toCenter) { if (!g.corner[c]) return false; pushUndo(); for (var i = 0; i < g.corner[c].length; i++) g.center[c] |= 1 << +g.corner[c][i]; g.corner[c] = ''; }
+  else { if (!g.center[c]) return false; pushUndo(); var sb = g.corner[c]; for (var d = 1; d <= 9; d++) if ((g.center[c] & (1 << d)) && sb.indexOf(String(d)) < 0) sb += d; g.corner[c] = sb; g.center[c] = 0; }
+  return true;
+}
+function canAnswer(c) { return !g.status && !isGiven(c) && (g.value[c] === 0 || g.wrong[c]); }
+function place(c, d) { g.value[c] = d; g.wrong[c] = false; g.corner[c] = ''; g.center[c] = 0; g.color[c] = '';
+  for (var i = 0; i < 20; i++) { var p = SX.PEERS[c][i]; g.corner[p] = g.corner[p].replace(String(d), ''); g.center[p] &= ~(1 << d); } }
+function checkDone() { for (var i = 0; i < 81; i++) if (g.value[i] !== g.solution[i] || g.wrong[i]) return; g.status = 1; undoS = []; redoS = []; }
+function answer(c, d) {
+  if (!canAnswer(c) || (g.wrong[c] && g.value[c] === d)) return true;
+  pushUndo();
+  if (g.solution[c] !== d) { g.value[c] = d; g.wrong[c] = true; g.errors++; return false; }
+  place(c, d); checkDone(); return true;
+}
+function erase(c) {
+  if (g.status) return false;
+  if (g.wrong[c]) { pushUndo(); g.value[c] = 0; g.wrong[c] = false; return true; }
+  var notes = g.value[c] === 0 && (g.corner[c] || g.center[c]);
+  if (g.value[c] || (!notes && !g.color[c])) return false;
+  pushUndo(); g.corner[c] = ''; g.center[c] = 0; g.color[c] = ''; return true;
+}
+function toggleLink(a, b, k) {
+  if (g.status || a < 0 || b < 0) return false;
+  var key = Math.min(a, b) * 81 + Math.max(a, b);
+  pushUndo();
+  for (var i = 0; i < g.links.length; i++) { var l = g.links[i]; if (l % 6561 !== key) continue; g.links.splice(i, 1); if (Math.floor(l / 6561) !== k) g.links.push(k * 6561 + key); return true; }
+  g.links.push(k * 6561 + key); return true;
+}
+function clearLinks(sel) {
+  var any = g.links.some(function (l) { return sel[Math.floor((l % 6561) / 81)] || sel[l % 81]; });
+  if (!any || g.status) return false;
+  pushUndo(); g.links = g.links.filter(function (l) { return !(sel[Math.floor((l % 6561) / 81)] || sel[l % 81]); }); return true;
+}
+function singleNote(c) { if (g.value[c]) return 0; var mask = g.center[c]; for (var i = 0; i < g.corner[c].length; i++) mask |= 1 << +g.corner[c][i];
+  var n = 0, d0 = 0; for (var d = 1; d <= 9; d++) if (mask & (1 << d)) { n++; d0 = d; } return n === 1 ? d0 : 0; }
+function writeAllCount() { var n = 0; for (var c = 0; c < 81; c++) if (singleNote(c)) n++; return n; }
+function writeAll() {
+  var d = []; var n = 0, errs = 0;
+  for (var c = 0; c < 81; c++) { d[c] = singleNote(c); if (d[c]) n++; }
+  if (!n) return 0;
+  pushUndo();
+  for (c = 0; c < 81; c++) if (d[c] && d[c] !== g.solution[c]) { g.value[c] = d[c]; g.wrong[c] = true; g.errors++; errs++; }
+  for (c = 0; c < 81; c++) if (d[c] && d[c] === g.solution[c]) place(c, d[c]);
+  checkDone(); return errs;
+}
+function eraseFull(c) {
+  if (c < 0) return false;
+  var any = false; batch = true; batchPushed = false;
+  while (erase(c)) any = true;
+  var one = new Array(81).fill(false); one[c] = true; any = clearLinks(one) || any;
+  batch = false; return any;
+}
+
+// ------------------------------------------------------------------ the page (as the game screen)
+var app = $('app');
+app.innerHTML = '<div id="tip"></div>' +
+  '<div class="top"><div class="b"><button class="pill" id="bMenu"></button></div><div class="mid"><div id="lvl"></div><div id="timer">00:00</div><div id="errs"></div></div>' +
+  '<div class="b r"><button class="pill" id="bNew"></button></div></div>' +
+  '<div class="row2"><div class="b"><button class="pill" id="bPause"></button></div><div class="w"><button class="pill acc" id="bWrite"></button></div>' +
+  '<div class="h"><button class="pill" id="bHint"></button></div></div>' +
+  '<div id="boardWrap"><canvas id="board"></canvas></div><div id="banner"></div>' +
+  '<div class="acts"><div style="padding:0 0 0 0"><button class="pill" id="bUndo"></button></div><div><button class="pill" id="bRedo"></button></div>' +
+  '<div><button class="pill" id="bErase"></button></div><div><button class="pill" id="bSpeed"></button></div></div>' +
+  '<div class="pad" id="pad"></div><div class="pad" id="cpad" hidden></div><div class="tabs" id="tabs"></div>';
+var keys = [], ckeys = [], tabs = [];
+for (var d0 = 1; d0 <= 9; d0++) (function (d) {
+  var k = document.createElement('button'); k.className = 'key'; k.innerHTML = '<div class="dg"></div><div class="ct"></div>';
+  hold(k, function () { digitKey(d); }, function () { peekKey(d); });
+  $('pad').appendChild(k); keys[d] = k;
+})(d0);
+for (var k0 = 1; k0 <= 3; k0++) (function (kk) {
+  var k = document.createElement('button'); k.className = 'key ckey'; k.innerHTML = '<div class="dot" style="background:' + CELL[kk] + '"></div><div class="ct"></div>';
+  hold(k, function () { colorKey(kk); }, null);
+  $('cpad').appendChild(k); ckeys[kk] = k;
+})(k0);
+[MODE_CORNER, MODE_CENTER, MODE_COLOR, MODE_ANSWER].forEach(function (m) {
+  var b = document.createElement('button'); b.className = 'tab'; b.innerHTML = '<canvas width="66" height="66" style="width:22px;height:22px"></canvas><span></span>';
+  hold(b, function () { setMode(m); }, m === MODE_COLOR ? colorHold : (m === MODE_CORNER || m === MODE_CENTER) ? function () { if (ui.sel >= 0 && moveNotes(ui.sel, m === MODE_CENTER)) afterChange(); } : null);
+  $('tabs').appendChild(b); tabs[m] = b;
+});
+hold($('bMenu'), function () { tip(t.onlyApp); }, null);
+hold($('bNew'), function () { tip(t.onlyApp); }, null);
+hold($('bPause'), function () { showPause(); }, null);
+hold($('bHint'), onHint, null);
+hold($('bWrite'), function () {
+  var n = writeAllCount(); if (!n || g.status) return;
+  confirmBox(f(t.confirmWrite, n), function () { clearHint(); var e = writeAll(); if (e) vib(40); if (g.status) { onWon(); return; } afterChange(); });
+}, null);
+hold($('bUndo'), function () { if (!g.status && undoS.length) { redoS.push(snap()); applyUi(restore(undoS.pop())); afterChange(); } }, null);
+hold($('bRedo'), function () { if (!g.status && redoS.length) { undoS.push(snap()); applyUi(restore(redoS.pop())); afterChange(); } }, null);
+hold($('bErase'), eraserTap, null);
+hold($('bSpeed'), speedTap, speedHold);
+
+/** A short tap / a long press (0.3 s, or the right mouse button on a computer) — as on the phone. */
+function hold(el, tap, longp) {
+  var timer = null, done = false;
+  el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  el.addEventListener('pointerdown', function (e) {
+    if (e.button === 2) { e.preventDefault(); if (longp) longp(); else tap(); return; }
+    if (e.button !== 0) return;
+    done = false; el.classList.add('pressed');
+    if (longp) timer = setTimeout(function () { done = true; el.classList.remove('pressed'); longp(); }, 300);
   });
-  $('apkNote').textContent = t.apkNote;
-  // «RU / EN»: the current language first and highlighted; a tap switches to the other one
-  $('switch').innerHTML = '<b>' + lang.toUpperCase() + '</b><span>/</span>' + t.other;
-  var self = location.origin + location.pathname;
+  var end = function (fire) { return function (e) {
+    if (e.button === 2) return;
+    clearTimeout(timer); var was = el.classList.contains('pressed'); el.classList.remove('pressed');
+    if (fire && was && !done) tap();
+  }; };
+  el.addEventListener('pointerup', end(true));
+  el.addEventListener('pointerleave', end(false));
+  el.addEventListener('pointercancel', end(false));
+}
 
-  if (!code) {
-    $('title').textContent = t.titlePlain;
-    $('lead').textContent = t.leadPlain;
-    $('lead').hidden = false;
-    $('getLabel').textContent = t.getPlain;
-    document.title = t.titlePlain;
+// ------------------------------------------------------------------ board drawing (as BoardView)
+var cv = $('board'), cx = cv.getContext('2d');
+var ox = 0, oy = 0, cs = 0, DPR = 1, flashCells = null, flashStart = 0, chain = [], addMode = true, lastErased = -1;
+function resize() {
+  var r = $('boardWrap').getBoundingClientRect(); DPR = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); draw();
+}
+window.addEventListener('resize', resize);
+function drawCentered(s, x, y) { cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(s, x, y); }
+function draw() {
+  var W = cv.width / DPR, H = cv.height / DPR, d = 1;
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0); cx.clearRect(0, 0, W, H);
+  var thick = 2.2, strip = 26, size = Math.min(W, H - strip) - thick;
+  cs = size / 9; ox = (W - size) / 2; oy = strip + (H - strip - size) / 2;
+  drawStatus();
+  var selVal = ui.sel >= 0 ? g.value[ui.sel] : 0;
+  if (ui.qd && ui.mode !== MODE_COLOR && ui.quick) selVal = ui.qd;
+  if (ui.peek) selVal = ui.peek;
+  var quickActive = ui.quick && ui.qd !== 0, lineCell = quickActive ? ui.anchor : ui.sel;
+  for (var i = 0; i < 81; i++) {
+    var bg = C.surface;
+    if (ui.multi && ui.msel[i]) bg = C.selected;
+    else if (!ui.multi && i === lineCell) bg = C.selected;
+    else if (selVal && g.value[i] === selVal) bg = C.sameDigit;
+    else if (!ui.multi && lineCell >= 0 && SX.isPeer(lineCell, i)) bg = C.unit;
+    cx.fillStyle = bg; cx.fillRect(ox + (i % 9) * cs, oy + Math.floor(i / 9) * cs, cs, cs);
+  }
+  for (i = 0; i < 81; i++) {
+    var ks = g.color[i]; if (!ks) continue;
+    var x = ox + (i % 9) * cs, y = oy + Math.floor(i / 9) * cs, n = ks.length;
+    for (var j = 0; j < n; j++) {
+      cx.fillStyle = rgba(CELL[+ks[j]], dark ? 0.44 : 0.33);
+      if (n === 1) { cx.fillRect(x, y, cs, cs); continue; }
+      cx.beginPath();
+      if (n === 2) { if (j === 0) { cx.moveTo(x, y); cx.lineTo(x + cs, y); cx.lineTo(x, y + cs); } else { cx.moveTo(x + cs, y); cx.lineTo(x + cs, y + cs); cx.lineTo(x, y + cs); } cx.closePath(); cx.fill(); continue; }
+      cx.save(); cx.beginPath(); cx.rect(x, y, cs, cs); cx.clip();
+      var a0 = (150 + 120 * j) * Math.PI / 180; cx.beginPath(); cx.moveTo(x + cs / 2, y + cs / 2); cx.arc(x + cs / 2, y + cs / 2, cs, a0, a0 + 2 * Math.PI / 3); cx.closePath(); cx.fill(); cx.restore();
+    }
+  }
+  if (quickActive && ui.sel >= 0 && ui.sel !== ui.anchor) { cx.strokeStyle = C.accent; cx.lineWidth = 2.5; var fx = ox + (ui.sel % 9) * cs, fy = oy + Math.floor(ui.sel / 9) * cs; cx.strokeRect(fx + 1.5, fy + 1.5, cs - 3, cs - 3); }
+  if (hintCell >= 0 && hintUnit >= 0) { cx.fillStyle = rgba(C.accent, 0.19); SX.UNITS[hintUnit].forEach(function (c) { if (c !== hintCell) cx.fillRect(ox + (c % 9) * cs, oy + Math.floor(c / 9) * cs, cs, cs); }); }
+  if (flashCells) {
+    var kf = (performance.now() - flashStart) / 650;
+    if (kf >= 1) flashCells = null; else { cx.fillStyle = rgba(C.accent, 0.59 * Math.sin(Math.PI * kf)); for (i = 0; i < 81; i++) if (flashCells[i]) cx.fillRect(ox + (i % 9) * cs, oy + Math.floor(i / 9) * cs, cs, cs); requestAnimationFrame(draw); }
+  }
+  drawLinks();
+  for (i = 0; i < 81; i++) {
+    x = ox + (i % 9) * cs; y = oy + Math.floor(i / 9) * cs;
+    var v = g.value[i];
+    if (v) {
+      cx.font = (isGiven(i) ? '600 ' : '400 ') + (cs * 0.64) + 'px system-ui, Roboto, sans-serif';
+      cx.fillStyle = isGiven(i) ? C.given : g.wrong[i] ? C.error : C.user; drawCentered(String(v), x + cs / 2, y + cs / 2 + cs * 0.03);
+    } else { drawCorner(x, y, g.corner[i], selVal); drawCenter(x, y, g.center[i], selVal); }
+  }
+  cx.strokeStyle = C.lineThin; cx.lineWidth = 0.8; cx.beginPath();
+  for (var k = 1; k < 9; k++) { if (k % 3 === 0) continue; cx.moveTo(ox + k * cs, oy); cx.lineTo(ox + k * cs, oy + 9 * cs); cx.moveTo(ox, oy + k * cs); cx.lineTo(ox + 9 * cs, oy + k * cs); }
+  cx.stroke();
+  if (hintCell >= 0) { cx.strokeStyle = C.accent; cx.lineWidth = 3.2; var hx = ox + (hintCell % 9) * cs, hy = oy + Math.floor(hintCell / 9) * cs; cx.strokeRect(hx + 2.2, hy + 2.2, cs - 4.4, cs - 4.4); }
+  cx.strokeStyle = C.lineThick; cx.lineWidth = thick; cx.beginPath();
+  for (k = 0; k <= 9; k += 3) { cx.moveTo(ox + k * cs, oy - thick / 2); cx.lineTo(ox + k * cs, oy + 9 * cs + thick / 2); cx.moveTo(ox - thick / 2, oy + k * cs); cx.lineTo(ox + 9 * cs + thick / 2, oy + k * cs); }
+  cx.stroke();
+}
+function noteStyle(hl, size) { cx.font = (hl ? '700 ' : '400 ') + size + 'px system-ui, Roboto, sans-serif'; cx.fillStyle = hl ? C.gold : C.note; }
+function drawCorner(x, y, s, selVal) {
+  if (!s) return; var step = cs * 0.178;
+  for (var k = 0; k < s.length; k++) { var dd = +s[k], row = Math.floor(k / 5), col = k % 5; noteStyle(dd === selVal, cs * 0.24 * (dd === selVal ? 1.1 : 1));
+    drawCentered(s[k], x + cs * 0.11 + col * step, y + cs * 0.17 + row * cs * 0.24); }
+}
+function drawCenter(x, y, mask, selVal) {
+  if (!mask) return; var s = ''; for (var dd = 1; dd <= 9; dd++) if (mask & (1 << dd)) s += dd;
+  var size = cs * 0.30; cx.font = '400 ' + size + 'px system-ui, Roboto, sans-serif'; var w = cx.measureText(s).width;
+  if (w > cs * 0.88) { size *= cs * 0.88 / w; cx.font = '400 ' + size + 'px system-ui, Roboto, sans-serif'; w = cx.measureText(s).width; }
+  var st = x + cs / 2 - w / 2;
+  for (var k = 0; k < s.length; k++) { cx.font = '400 ' + size + 'px system-ui, Roboto, sans-serif'; var cw = cx.measureText(s[k]).width;
+    noteStyle(+s[k] === selVal, size * (+s[k] === selVal ? 1.1 : 1)); drawCentered(s[k], st + cw / 2, y + cs * 0.56); st += cw; }
+}
+function ax(c) { return ox + (c % 9) * cs + cs * 0.75; } function ay(c) { return oy + Math.floor(c / 9) * cs + cs * 0.75; }
+function drawLinks() {
+  var ls = g.links.slice();
+  if (ui.drawing && ui.multi) for (var i = 1; i < chain.length; i++) ls.push(ui.drawColor * 6561 + Math.min(chain[i - 1], chain[i]) * 81 + Math.max(chain[i - 1], chain[i]));
+  if (!ls.length) return;
+  cx.lineCap = 'round'; cx.lineWidth = 2.6;
+  ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81; if (a === b) return;
+    cx.strokeStyle = rgba(CELL[k], 0.82); cx.beginPath(); cx.moveTo(ax(a), ay(a)); cx.lineTo(ax(b), ay(b)); cx.stroke(); });
+  cx.lineCap = 'butt';
+  ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81; cx.fillStyle = rgba(CELL[k], 0.88);
+    var dot = function (c, r) { cx.beginPath(); cx.arc(ax(c), ay(c), r, 0, 7); cx.fill(); };
+    if (a === b) dot(a, cs * 0.11); else { dot(a, cs * 0.065); dot(b, cs * 0.065); } });
+}
+function drawStatus() {
+  var s = 22, x = ox + 2, y = oy - s - 4;
+  if (ui.eraser) drawEraserIcon(x, y, s);
+  else if (ui.mode === MODE_COLOR && ui.drawing && ui.multi) linkIcon(cx, x, y, s, CELL[ui.drawColor]);
+  else if (ui.mode === MODE_COLOR) drawColorsIcon(x, y, s);
+  else if (ui.mode === MODE_ANSWER) drawMarker(x, y, s);
+  else drawPencil(x, y, s, ui.mode === MODE_CORNER);
+  var pick = ui.quick ? ui.qd : 0, px = x + s + 6;
+  if (pick && ui.mode === MODE_COLOR && !ui.eraser) { cx.fillStyle = rgba(CELL[pick], 0.65); roundRect(px, y + s * 0.18, s * 0.64, s * 0.64, 4); cx.fill(); }
+  else if (pick && !ui.eraser) { cx.font = '600 ' + (s * 0.78) + 'px system-ui, Roboto, sans-serif'; cx.fillStyle = C.accent; drawCentered(String(pick), px + s * 0.28, y + s / 2); }
+  if (ui.quick || ui.multi) {
+    var bx = ox + 9 * cs - s, by = y; cx.fillStyle = ui.multi ? C.error : C.accent; cx.beginPath();
+    cx.moveTo(bx + s * 0.58, by + s * 0.04); cx.lineTo(bx + s * 0.18, by + s * 0.56); cx.lineTo(bx + s * 0.47, by + s * 0.56); cx.lineTo(bx + s * 0.38, by + s * 0.96);
+    cx.lineTo(bx + s * 0.82, by + s * 0.40); cx.lineTo(bx + s * 0.53, by + s * 0.40); cx.closePath(); cx.fill();
+  }
+}
+function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+function drawPencil(x, y, s, corner) {
+  cx.save(); cx.translate(x + s / 2, y + s / 2); cx.rotate(-Math.PI / 4);
+  var L = s * 1.1, w = s * 0.2, bl = -L / 2, br = L / 2 - L * 0.26, tr = L / 2;
+  cx.strokeStyle = C.note; cx.lineWidth = 1.4; cx.lineJoin = 'round'; cx.strokeRect(bl, -w / 2, br - bl, w);
+  cx.beginPath(); cx.moveTo(bl + L * 0.16, -w / 2); cx.lineTo(bl + L * 0.16, w / 2); cx.moveTo(br, -w / 2); cx.lineTo(tr, 0); cx.lineTo(br, w / 2); cx.stroke();
+  cx.fillStyle = C.note; var lx = tr - L * 0.09; cx.beginPath(); cx.moveTo(lx, -w * 0.18); cx.lineTo(tr, 0); cx.lineTo(lx, w * 0.18); cx.closePath(); cx.fill(); cx.restore();
+  cx.fillStyle = C.accent; cx.beginPath();
+  if (corner) { cx.moveTo(x - 1, y - 1); cx.lineTo(x + s * 0.34, y - 1); cx.lineTo(x - 1, y + s * 0.34); cx.closePath(); } else cx.arc(x + s * 0.12, y + s * 0.12, s * 0.12, 0, 7);
+  cx.fill();
+}
+function drawMarker(x, y, s) {
+  cx.save(); cx.translate(x + s / 2, y + s / 2); cx.rotate(-Math.PI / 4);
+  var L = s * 1.12, w = s * 0.4, l = -L / 2, capR = l + L * 0.3, bodyR = L / 2 - L * 0.2, r = L / 2;
+  cx.fillStyle = C.user; roundRect(capR, -w / 2, bodyR - capR, w, w * 0.25); cx.fill();
+  cx.fillStyle = C.accent; roundRect(l, -w / 2, capR + w * 0.1 - l, w, w * 0.35); cx.fill();
+  cx.fillStyle = C.user; cx.beginPath(); cx.moveTo(bodyR - 0.5, -w * 0.32); cx.lineTo(r, -w * 0.1); cx.lineTo(r, w * 0.22); cx.lineTo(bodyR - 0.5, w * 0.32); cx.closePath(); cx.fill(); cx.restore();
+}
+function drawColorsIcon(x, y, s) {
+  cx.save(); roundRect(x, y, s, s, 5); cx.clip();
+  for (var j = 0; j < 3; j++) { var a0 = (150 + 120 * j) * Math.PI / 180; cx.fillStyle = rgba(CELL[j + 1], dark ? 0.69 : 0.63); cx.beginPath(); cx.moveTo(x + s / 2, y + s / 2); cx.arc(x + s / 2, y + s / 2, s, a0, a0 + 2 * Math.PI / 3); cx.closePath(); cx.fill(); }
+  cx.restore(); cx.strokeStyle = C.lineThick; cx.lineWidth = 1.4; roundRect(x, y, s, s, 5); cx.stroke();
+}
+function drawEraserIcon(x, y, s) {
+  cx.save(); cx.translate(x + s / 2, y + s / 2); cx.rotate(-35 * Math.PI / 180); var w = s * 0.95, h = s * 0.48;
+  cx.fillStyle = C.error; roundRect(-w / 2, -h / 2, w, h, h * 0.25); cx.fill(); cx.fillStyle = C.user; roundRect(-w / 2, -h / 2, w * 0.42, h, h * 0.25); cx.fill(); cx.restore();
+}
+function linkIcon(c2, x, y, s, color) {
+  c2.strokeStyle = color; c2.fillStyle = color; c2.lineWidth = 2.2; c2.lineCap = 'round';
+  c2.beginPath(); c2.moveTo(x + s * 0.18, y + s * 0.8); c2.lineTo(x + s * 0.82, y + s * 0.22); c2.stroke(); c2.lineCap = 'butt';
+  c2.beginPath(); c2.arc(x + s * 0.18, y + s * 0.8, s * 0.15, 0, 7); c2.fill(); c2.beginPath(); c2.arc(x + s * 0.82, y + s * 0.22, s * 0.15, 0, 7); c2.fill();
+}
+
+// ------------------------------------------------------------------ touch on the board (finger, or the left mouse button)
+var down = false;
+function cellAt(e) { var r = cv.getBoundingClientRect(), col = Math.floor((e.clientX - r.left - ox) / cs), row = Math.floor((e.clientY - r.top - oy) / cs);
+  return col >= 0 && col < 9 && row >= 0 && row < 9 ? row * 9 + col : -1; }
+cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+cv.addEventListener('pointerdown', function (e) {
+  if (!started || paused || e.button !== 0) return;
+  cv.setPointerCapture(e.pointerId); down = true; var c = cellAt(e);
+  if (ui.multi && ui.drawing && !ui.eraser) { chain = c >= 0 ? [c] : []; draw(); return; }
+  if (ui.multi && ui.eraser) { if (c >= 0) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
+  if (ui.multi) { if (c < 0) return; addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return; }
+  if (c < 0) return;
+  if (c !== ui.sel) { ui.sel = c; onCellSelected(); }
+  onCellTapped(c); draw();
+});
+cv.addEventListener('pointermove', function (e) {
+  if (!down || !started || paused) return; var c = cellAt(e); if (c < 0) return;
+  if (ui.multi && ui.drawing && !ui.eraser) {
+    if (!chain.length) return; var last = chain[chain.length - 1];
+    if (chain.length >= 2 && c === chain[chain.length - 2]) { chain.pop(); draw(); }
+    else if (c !== last && SX.isPeer(last, c)) { chain.push(c); draw(); }
     return;
   }
-  $('title').textContent = code.indexOf('~') > 0 ? t.titleChallenge : t.titleShared;
-  drawPuzzle(code);
-  $('getLabel').textContent = t.getLabel;
-  if (/[?&]noapp=1/.test(q)) { $('lead').textContent = t.noapp; $('lead').hidden = false; }
-  var open = $('open');
-  open.hidden = false;
-  open.textContent = t.open;
-  // Android: the game's own address sudoky://s/?c=… (the https link itself always stays in the browser);
-  // without the game Chrome comes back here with noapp=1
-  var back = self + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + '&noapp=1&lang=' + lang;
-  var extra = (/[?&]se=\d+/.test(q) ? '&' + q.match(/se=\d+/)[0] : '') + (/[?&]d=\d+/.test(q) ? '&' + q.match(/d=\d+/)[0] : '');
-  if (nick) extra += '&n=' + encodeURIComponent(nick);
-  open.href = /Android/i.test(navigator.userAgent)
-    ? 'intent://s/?c=' + encodeURIComponent(code) + extra +
-      '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end'
-    : '#get';
-
+  if (ui.multi && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
+  if (ui.multi) { if (ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
+  if (c !== ui.sel) { ui.sel = c; onCellSelected(); draw(); }
+});
+function up() {
+  if (!down) return; down = false; lastErased = -1;
+  if (ui.multi && ui.drawing && !ui.eraser && chain.length) {
+    var ch = chain; chain = []; var any = false; batch = true; batchPushed = false;
+    if (ch.length === 1) any = toggleLink(ch[0], ch[0], ui.drawColor); else for (var i = 1; i < ch.length; i++) any = toggleLink(ch[i - 1], ch[i], ui.drawColor) || any;
+    batch = false; if (any) afterChange(); else draw();
   }
+}
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
-  /**
-   * The code as in the game (PuzzleCode): "<level 1..8>-<base36>[~seconds.errors.hints]". Read from the last cell:
-   * a bit 1 = a given whose digit-1 comes next in base 9, a bit 0 = an empty cell; what is left must be 1.
-   */
-  function esc(x) { return x.replace(/[&<>"']/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
+// ------------------------------------------------------------------ input (as MainActivity)
+function cellTakesInput(c) { if (c < 0 || g.status || isGiven(c)) return false; return ui.mode === MODE_ANSWER ? canAnswer(c) : g.value[c] === 0; }
+function noteHas(c, d) { return ui.mode === MODE_CORNER ? g.corner[c].indexOf(String(d)) >= 0 : ui.mode === MODE_CENTER && (g.center[c] & (1 << d)) !== 0; }
+function hasNote(c, d, m) { return m === MODE_CORNER ? g.corner[c].indexOf(String(d)) >= 0 : (g.center[c] & (1 << d)) !== 0; }
+function onCellSelected() { ui.peek = 0; refreshControls(); }
+function onCellTapped(c) {
+  if (ui.eraser && !g.status) { if (eraseFull(c)) afterChange(); return; }
+  if (!ui.quick || g.status) return;
+  var v = g.value[c];
+  if (ui.mode !== MODE_COLOR && v && !g.wrong[c]) { ui.chosen = false; ui.qd = v; ui.anchor = c; refresh(); return; }
+  if (ui.qd) { ui.chosen = false; if (ui.mode === MODE_ANSWER) ui.anchor = c; input(ui.qd); }
+  else ui.chosen = true;
+}
+function input(d) {
+  if (g.status) return; var c = ui.sel; if (c < 0) return; var changed;
+  if (ui.mode === MODE_COLOR) { if (d > 3) return; changed = toggleColor(c, d); }
+  else if (ui.mode === MODE_CORNER || ui.mode === MODE_CENTER) { var has = hasNote(c, d, ui.mode); if (placedCount(d) >= 9 && !has) return; changed = ui.mode === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d); }
+  else {
+    if (!canAnswer(c) || placedCount(d) >= 9) return;
+    if (!answer(c, d)) { onMistake(); return; }
+    changed = true; if (g.status) { onWon(); return; } celebrate(c, d);
+  }
+  if (changed) afterChange();
+}
+function digitKey(d) {
+  if (!started || paused) return;
+  ui.peek = 0; ui.eraser = false;
+  if (ui.multi) { multiInput(d); return; }
+  if (placedCount(d) >= 9 && !g.status && !(ui.mode !== MODE_ANSWER && ui.sel >= 0 && noteHas(ui.sel, d))) return;
+  if (ui.quick) {
+    if ((ui.qd === 0 || ui.chosen) && cellTakesInput(ui.sel)) { ui.anchor = ui.sel; input(d); if (!g.status && !(ui.mode === MODE_ANSWER && placedCount(d) >= 9)) ui.qd = d; refresh(); }
+    else { ui.qd = ui.qd === d ? 0 : d; ui.anchor = -1; ui.sel = -1; refresh(); }
+  } else input(d);
+}
+function peekKey(d) { if (!started || paused) return; if (ui.quick) ui.qd = 0; if (!ui.multi) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
+function colorKey(k) {
+  if (!started || paused) return; ui.eraser = false;
+  if (ui.multi && ui.drawing) { ui.drawColor = k; refresh(); return; }
+  if (ui.multi) { multiInput(k); return; }
+  if (ui.quick) {
+    if ((ui.qd === 0 || ui.chosen) && cellTakesInput(ui.sel)) { ui.anchor = ui.sel; input(k); ui.qd = k; refresh(); }
+    else { ui.qd = ui.qd === k ? 0 : k; ui.anchor = -1; ui.sel = -1; refresh(); }
+  } else input(k);
+}
+function setMode(m) {
+  if (!started || paused) return; ui.peek = 0;
+  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; ui.mode = m; refresh(); return; }
+  if (m === ui.mode) m = (m === MODE_ANSWER || m === MODE_COLOR) ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
+  if (m <= MODE_CENTER) ui.lastNote = m;
+  if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
+  ui.mode = m; if (m !== MODE_COLOR) ui.drawing = false; refresh();
+}
+function colorHold() {
+  if (!started || paused || g.status) return;
+  if (!ui.multi) { tip(t.drawOnlyRed); return; }
+  vib(20); ui.drawing = !ui.drawing; ui.eraser = false;
+  if (ui.drawing) { if (ui.mode !== MODE_COLOR) { ui.qd = 0; ui.mode = MODE_COLOR; } var cm = commonColor(); if (cm) ui.drawColor = cm; }
+  refresh();
+}
+function speedTap() {
+  if (!started || paused || g.status) return; ui.eraser = false;
+  if (ui.multi) { leaveRed(false); return; }
+  if (ui.quick && ui.qd && ui.anchor >= 0) ui.sel = ui.anchor;
+  ui.quick = !ui.quick; ui.qd = 0; ui.chosen = false;
+  var sc = ui.sel; if (ui.quick && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
+  refresh();
+}
+function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
+function enterRed() {
+  ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
+  ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.sel = -1; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh();
+}
+function leaveRed(toBlue) {
+  ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
+  ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
+  if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
+  ui.msel.fill(false); refresh();
+}
+function multiCells() { var r = []; for (var c = 0; c < 81; c++) if (ui.msel[c]) r.push(c); return r; }
+function commonColor() { var cs2 = multiCells(); if (!cs2.length) return 0; for (var k = 1; k <= 3; k++) if (cs2.every(function (c) { return hasColor(c, k); })) return k; return 0; }
+function multiInput(d) {
+  if (g.status) return; var cs2 = multiCells(); if (!cs2.length) return;
+  var changed = false, mistake = false, lastOk = -1; batch = true; batchPushed = false;
+  if (ui.mode === MODE_COLOR) {
+    if (d <= 3) { var all = cs2.every(function (c) { return g.value[c] || hasColor(c, d); }); cs2.forEach(function (c) { if (!g.value[c] && hasColor(c, d) === all) changed = toggleColor(c, d) || changed; }); }
+  } else if (ui.mode !== MODE_ANSWER) {
+    var empties = cs2.filter(function (c) { return !g.value[c]; }), allN = empties.length > 0 && empties.every(function (c) { return hasNote(c, d, ui.mode); });
+    if (empties.length && (allN || placedCount(d) < 9)) empties.forEach(function (c) { if (hasNote(c, d, ui.mode) === allN) changed = (ui.mode === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d)) || changed; });
+  } else if (placedCount(d) < 9) {
+    for (var i = 0; i < cs2.length; i++) { var c = cs2[i]; if (!canAnswer(c) || (g.wrong[c] && g.value[c] === d)) continue; changed = true; if (answer(c, d)) lastOk = c; else mistake = true; if (g.status) break; }
+  }
+  batch = false;
+  if (g.status) { onWon(); return; }
+  if (lastOk >= 0) celebrate(lastOk, d);
+  if (mistake) { onMistake(); return; }
+  if (changed) afterChange();
+}
+function eraserTap() {
+  if (!started || paused || g.status) return;
+  if (ui.eraser) { ui.eraser = false; refresh(); return; }
+  if (ui.quick || ui.multi) { ui.eraser = true; ui.drawing = false; ui.qd = 0; ui.chosen = false; ui.peek = 0; refresh(); return; }
+  if (ui.sel >= 0 && eraseFull(ui.sel)) afterChange();
+}
+function applyUi(u) {
+  if (!u) return;
+  if (ui.multi) { ui.mode = u[0]; ui.lastNote = u[1]; if (ui.mode !== MODE_COLOR) ui.drawing = false; ui.eraser = false; ui.peek = 0; return; }
+  if (u[2] === 2) { ui.mode = u[0]; ui.lastNote = u[1]; ui.eraser = false; ui.peek = 0; return; }
+  ui.mode = u[0]; ui.lastNote = u[1]; ui.quick = u[2] === 1; ui.qd = u[3]; ui.sel = u[4]; ui.anchor = u[5]; ui.chosen = u[6] === 1; ui.eraser = false; ui.peek = 0;
+}
+function celebrate(c, d) {
+  if (placedCount(d) >= 9 && ui.qd === d) ui.qd = 0;
+  var fl = new Array(81).fill(false), any = false;
+  for (var k = 0; k < 3; k++) { var u = SX.UNITS[SX.CELL_UNITS[c][k]]; if (u.every(function (x) { return g.value[x]; })) { any = true; u.forEach(function (x) { fl[x] = true; }); } }
+  if (any) { flashCells = fl; flashStart = performance.now(); requestAnimationFrame(draw); }
+}
+function onMistake() { vib([30, 70, 30]); cv.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(0)' }], 260); afterChange(); }
+function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { } }
+function afterChange() { refresh(); save(); }
+function refresh() { refreshControls(); draw(); }
 
-  function decode(c) {
-    var t2 = c.indexOf('~'), res = null;
-    if (t2 > 0) { res = c.slice(t2 + 1).split('.').map(Number); c = c.slice(0, t2); }
-    var n = 0n, s = c.slice(2).toLowerCase();
-    for (var i = 0; i < s.length; i++) n = n * 36n + BigInt(parseInt(s[i], 36));
-    var p = new Array(81).fill(0);
-    for (var k = 80; k >= 0; k--) {
-      var bit = n % 2n; n /= 2n;
-      if (bit) { p[k] = Number(n % 9n) + 1; n /= 9n; }
-    }
-    if (n !== 1n) return null;
-    return { level: parseInt(c[0], 10) - 1, cells: p, res: res };
+// ------------------------------------------------------------------ the controls (as refreshControls)
+function refreshControls() {
+  var sc = ui.sel, mc = ui.multi ? multiCells() : null;
+  for (var d = 1; d <= 9; d++) {
+    var k = keys[d], left = 9 - placedCount(d), raised = false;
+    if (ui.multi) { raised = mc.length > 0 && mc.every(function (c) { return ui.mode === MODE_ANSWER ? g.value[c] === d : !g.value[c] && hasNote(c, d, ui.mode); }) && ui.mode !== MODE_COLOR; }
+    else if (sc >= 0 && !g.value[sc]) raised = ui.mode === MODE_CORNER ? g.corner[sc].indexOf(String(d)) >= 0 : ui.mode === MODE_CENTER && (g.center[sc] & (1 << d)) !== 0;
+    k.className = 'key' + (ui.quick && ui.qd === d ? ' chosen' : '') + (raised ? ' raised' : '') + (left <= 0 ? ' done' : '');
+    var dg = k.firstChild, h = 62;
+    if (ui.mode === MODE_ANSWER) { dg.style.cssText = 'top:' + (h * 0.45 - 17) + 'px;font-size:30px;color:' + (ui.quick && ui.qd === d ? '#fff' : left <= 0 ? '' : 'var(--accent)'); }
+    else if (ui.mode === MODE_CORNER) { dg.style.cssText = 'top:5px;left:8px;right:auto;font-size:17px'; }
+    else dg.style.cssText = 'top:' + (h * 0.45 - 12) + 'px;font-size:17px';
+    dg.textContent = d; k.lastChild.textContent = left <= 0 ? '✓' : left;
   }
-  /** The grid, then one or two lines: «Средний · SE 3,0 (3)» and the friend's result. */
-  function drawPuzzle(c) {
-    var d;
-    try { d = decode(c); } catch (e) { d = null; }
-    if (!d) return;
-    var g = $('grid');
-    for (var k = 0; k < 81; k++) {
-      var cell = document.createElement('div');
-      var col = k % 9, row = (k / 9) | 0;
-      if (col === 2 || col === 5) cell.className += ' r';
-      if (row === 2 || row === 5) cell.className += ' b';
-      if (d.cells[k]) cell.textContent = d.cells[k];
-      g.appendChild(cell);
-    }
-    g.hidden = false;
-    var line = t.levels[d.level] ? '<b>' + t.levels[d.level] + '</b>' : '';
-    // the game adds &se=<tenths>&d=<key moves> to the link: «SE 3,0 (3)» as in the game
-    var se = /[?&]se=(\d{1,3})/.exec(q), dn = /[?&]d=(\d{1,2})/.exec(q);
-    if (se) {
-      var r = +se[1], txt = r >= 105 ? '10+' : r >= 90 ? '9+' : r >= 80 ? '8+' : r === 70 ? '7+' : Math.floor(r / 10) + t.dec + (r % 10);
-      line += (line ? ' · ' : '') + 'SE <b>' + txt + '</b>' + (dn && +dn[1] > 0 ? ' (' + dn[1] + ')' : '');
-    }
-    var lines = line ? [line] : [];
-    if (d.res && d.res.length === 3) {
-      var sec = d.res[0], mm = Math.floor(sec / 60), ss = sec % 60;
-      lines.push((nick ? esc(nick) : t.friend) + ': <b>' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b> · '
-        + t.mistakes + ' ' + d.res[1] + ' · ' + t.hints + ' ' + d.res[2]);
-    }
-    $('meta').innerHTML = lines.join('<br>');
-    $('meta').hidden = lines.length === 0;
+  var colorMode = ui.mode === MODE_COLOR;
+  $('pad').hidden = colorMode; $('cpad').hidden = !colorMode;
+  for (var c = 1; c <= 3; c++) {
+    var chosen, rz;
+    if (ui.multi) { chosen = ui.drawing && ui.drawColor === c; rz = mc.length > 0 && mc.every(function (x) { return hasColor(x, c); }); }
+    else { chosen = ui.quick && colorMode && ui.qd === c; rz = sc >= 0 && hasColor(sc, c); }
+    ckeys[c].className = 'key ckey' + (chosen ? ' chosen' : '') + (rz ? ' raised' : ''); ckeys[c].lastChild.textContent = t.colors[c];
   }
+  if (pendingHint && g.value[pendingHint[0]] && !g.wrong[pendingHint[0]]) clearHint();
+  var shown = pendingHint && !hintNudge; hintCell = shown ? pendingHint[0] : -1; hintUnit = shown && pendingHint[2] === SX.T_HIDDEN ? pendingHint[3] : -1;
+  $('bHint').textContent = !pendingHint ? t.hint : hintNudge ? t.hintWhere : t.hintPlace;
+  $('bHint').className = 'pill' + (pendingHint ? ' acc' : '') + (g.status ? ' off' : '');
+  $('bPause').className = 'pill' + (g.status ? ' off' : '');
+  $('bWrite').style.visibility = !g.status && writeAllCount() > 0 ? 'visible' : 'hidden';
+  [MODE_CORNER, MODE_CENTER, MODE_COLOR, MODE_ANSWER].forEach(function (m) {
+    var b = tabs[m]; b.className = 'tab' + (m === ui.mode && !ui.eraser ? ' on' : '') + (ui.eraser ? ' dim' : '');
+    drawTabIcon(b.firstChild, m, m === ui.mode && !ui.eraser, m === MODE_COLOR && ui.multi && ui.drawing ? ui.drawColor : 0);
+  });
+  $('bSpeed').textContent = ui.multi ? t.multi : ui.quick ? t.quick : t.slow;
+  $('bSpeed').className = 'pill' + (ui.multi ? ' dng' : ui.quick ? ' acc' : '');
+  $('bUndo').className = 'pill' + (undoS.length && !g.status ? '' : ' off');
+  $('bRedo').className = 'pill' + (redoS.length && !g.status ? '' : ' off');
+  $('bErase').className = 'pill' + (ui.eraser ? ' filled' : '');
+  $('bErase').innerHTML = '⌫ ' + t.erase;
+  var e = f(t.errors, g.errors), h2 = f(t.hints, g.hints);
+  $('errs').innerHTML = (g.errors > 0 ? '<span style="color:var(--error)">' + e + '</span>' : e) + ' · ' + h2;
+}
+function drawTabIcon(c, m, on, link) {
+  var x = c.getContext('2d'), s = 66, k = 3; x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, s, s); x.scale(k, k);
+  var col = on ? C.accent : C.textDim; x.strokeStyle = col; x.lineWidth = 1.6; x.beginPath();
+  x.moveTo(5, 1); x.arcTo(21, 1, 21, 21, 4); x.arcTo(21, 21, 1, 21, 4); x.arcTo(1, 21, 1, 1, 4); x.arcTo(1, 1, 21, 1, 4); x.closePath(); x.stroke();
+  x.fillStyle = col; x.textAlign = 'center'; x.textBaseline = 'middle';
+  if (m === MODE_CORNER) { x.font = '600 8.5px system-ui'; x.fillText('1', 6, 6.5); x.fillText('2', 11.5, 6.5); }
+  else if (m === MODE_CENTER) { x.font = '600 8.5px system-ui'; x.fillText('12', 11, 11.5); }
+  else if (m === MODE_ANSWER) { x.font = '600 15px system-ui'; x.fillText('1', 11, 12); }
+  else if (link) linkIcon(x, 3, 3, 16, CELL[link]);
+  else for (var j = 0; j < 3; j++) { x.fillStyle = CELL[j + 1]; x.fillRect(3.6 + j * 6.4, 8.4, 5.2, 5.2); }
+  c.nextSibling.textContent = [t.corner, t.center, t.answer, t.color][m];
+}
+
+// ------------------------------------------------------------------ hint (three steps, as in the game)
+function correctValues() { return g.value.map(function (v, i) { return g.wrong[i] ? 0 : v; }); }
+function techName(h) { if (h[2] >= SX.T_HARDER) return ''; var k = h.length > 4 ? h[4] : 0; if (k > 0 && t.tech[k]) return t.tech[k]; return h[2] === SX.T_HIDDEN ? t.tech.hidden : t.tech.naked; }
+function hintText(h) {
+  var name = techName(h), more = name ? '<span class="more">' + t.hMore + '</span>' : '';
+  if (hintNudge) return (name ? f(t.hNudge, name) : t.hNudgeGuess) + more;
+  var unit = h[3] < 0 ? '' : h[3] < 9 ? t.unitRow : h[3] < 18 ? t.unitCol : t.unitBox, k = h.length > 4 ? h[4] : 0, msg;
+  if (h[2] >= SX.T_HARDER) msg = t.hGuess; else if (k > 0) msg = f(t.hTech, name); else if (h[2] === SX.T_HIDDEN) msg = f(t.hHidden, unit); else msg = t.hNaked;
+  return msg + '<br>' + t.hPress + more;
+}
+function onHint() {
+  if (!started || paused || g.status) return;
+  if (ui.multi) leaveRed(!!(ui.preRed && ui.preRed[0] === 1));
+  if (pendingHint && hintNudge) { hintNudge = false; ui.sel = pendingHint[0]; banner(hintText(pendingHint)); save(); refresh(); return; }
+  if (pendingHint && canAnswer(pendingHint[0])) { var c = pendingHint[0], d = pendingHint[1]; clearHint(); ui.sel = c; answer(c, d); if (g.status) { onWon(); return; } celebrate(c, d); afterChange(); return; }
+  var h = SX.hint(correctValues(), g.solution); if (!h) return;
+  g.hints++; pendingHint = h; hintNudge = true; banner(hintText(h)); save(); refresh();
+}
+function banner(html) { var b = $('banner'); b.innerHTML = html; b.style.display = html ? 'block' : 'none'; resize(); }
+function clearHint() { pendingHint = null; hintNudge = false; hintCell = hintUnit = -1; if ($('banner').style.display !== 'none') banner(''); }
+
+// ------------------------------------------------------------------ clock, saving
+function tick() {
+  var now = performance.now();
+  if (running) { g.elapsed += now - lastTick; }
+  lastTick = now;
+  $('timer').textContent = fmt(g.elapsed);
+}
+setInterval(tick, 500);
+function startClock() { if (!started || paused || g.status) return; running = true; lastTick = performance.now(); }
+function stopClock() { tick(); running = false; }
+document.addEventListener('visibilitychange', function () { if (document.hidden) { if (started && !paused && !g.status) showPause(); save(); } });
+function save() {
+  if (!started) return;
+  try { localStorage.setItem(KEY, JSON.stringify({ v: g.value, k: g.corner, m: g.center, c: g.color, w: g.wrong, l: g.links, e: g.errors, h: g.hints, t: g.elapsed, s: g.status })); } catch (e) { }
+}
+var saved = null;
+try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+if (saved && !saved.s) { g.value = saved.v; g.corner = saved.k; g.center = saved.m; g.color = saved.c; g.wrong = saved.w; g.links = saved.l || []; g.errors = saved.e; g.hints = saved.h; g.elapsed = saved.t; }
+else saved = null;
+
+// the game's own address with the progress: the game offers «Продолжить» (format: GameState from the browser, see the app)
+function progressParam() {
+  if (!started || g.status) return '';
+  var v = '', m = '';
+  for (var c = 0; c < 81; c++) { var x = g.value[c]; v += g.wrong[c] ? String.fromCharCode(96 + x) : x; m += ('00' + (g.center[c] & 0x3FE).toString(16)).slice(-3); }
+  return [Math.round(g.elapsed), g.errors, g.hints, v, m, g.corner.join('_'), g.color.join('_')].join('~');
+}
+function openInGame() {
+  if (!ANDROID) { tip(t.onlyAndroid); return; }
+  stopClock(); save();
+  var extra = (SE > 0 ? '&se=' + SE : '') + (DEN > 0 ? '&d=' + DEN : '') + (nick ? '&n=' + encodeURIComponent(nick) : '');
+  var p = progressParam(); if (p) extra += '&p=' + encodeURIComponent(p);
+  var back = location.origin + location.pathname + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + '&noapp=1&lang=' + lang;
+  location.href = 'intent://s/?c=' + encodeURIComponent(code) + extra + '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end';
+}
+function rustore() { if (!ANDROID) { tip(t.onlyAndroid); return; } location.href = RUSTORE; }
+function apk() { var a = document.createElement('a'); a.href = APK; a.download = 'Sudoky.apk'; document.body.appendChild(a); a.click(); a.remove(); }
+
+// ------------------------------------------------------------------ cards: start, pause, solved, tip
+var tipTimer = null;
+function tip(msg) { var x = $('tip'); x.textContent = msg; x.style.display = 'block'; clearTimeout(tipTimer); tipTimer = setTimeout(function () { x.style.display = 'none'; }, 2600); x.onclick = function () { x.style.display = 'none'; }; }
+function levelName() { return t.levels[g.level] || '?'; }
+function friendName() { return nick || t.friend; }
+function updateLevelLine() {
+  var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
+  if (g.chMs >= 0) s += ' · ' + f(t.goal, fmt(g.chMs));
+  $('lvl').textContent = s;
+}
+function infoRows() {
+  var r = '';
+  if (nick) r += '<div class="r"><span>' + t.from + '</span><b>' + esc(nick) + '</b></div>';
+  r += '<div class="r"><span>' + t.level + '</span><b>' + levelName() + '</b></div>';
+  if (SE > 0) r += '<div class="r"><span>' + t.depth + '</span><b>' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') + '</b></div>';
+  if (g.chMs >= 0) {
+    r += '<div class="r"><span>' + (nick ? f(t.ftimeNick, esc(nick)) : t.ftime) + '</span><b>' + fmt(g.chMs) + '</b></div>';
+    r += '<div class="r"><span>' + t.mistakesL + '</span><b>' + g.chErr + '</b></div><div class="r"><span>' + t.hintsL + '</span><b>' + g.chHints + '</b></div>';
+  }
+  return '<div class="box">' + r + '</div>';
+}
+function langBtn() { return '<button class="lang" data-lang><b>' + lang.toUpperCase() + '</b><span>/</span>' + t.other + '</button>'; }
+function wireLang(root, redraw) { var b = root.querySelector('[data-lang]'); if (b) b.onclick = function () { lang = lang === 'ru' ? 'en' : 'ru'; t = TX[lang];
+  try { var u = new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null, '', u.pathname + u.search); } catch (e) { }
+  staticTexts(); refresh(); updateLevelLine(); redraw(); }; }
+function showStart() {
+  var st = document.createElement('div'); st.id = 'start';
+  var draw1 = function () {
+    // compact, so the whole board stays in view above it
+    var meta = levelName() + (SE > 0 ? ' · SE <b>' + seText(SE) + '</b>' + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
+    if (g.chMs >= 0) meta += '<br>' + f(t.chFriend, '<b>' + fmt(g.chMs) + '</b>', g.chErr, g.chHints, esc(friendName()));
+    st.innerHTML = '<div class="card" style="padding:12px 14px 10px"><div class="head"><img src="/icon.png" alt="" style="width:32px;height:32px;border-radius:9px"><h2 style="font-size:18px">' +
+      (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + '</h2>' + langBtn() + '</div>' +
+      '<div class="info" style="margin-top:6px;font-size:13.5px">' + meta + '</div>' + (/[?&]noapp=1/.test(q) ? '<div class="note">' + t.noapp + '</div>' : '') +
+      '<div class="btns" style="margin-top:10px;gap:6px"><button class="pill filled" id="sPlay" style="height:46px">' + (saved ? f(t.contHere, fmt(g.elapsed)) : t.playHere) + '</button>' +
+      '<button class="pill acc" id="sOpen" style="height:44px">' + t.open + '</button>' +
+      '<div class="two"><button class="pill" id="sApk" style="height:44px">' + t.apk + '</button><button class="pill" id="sRu" style="height:44px">' + t.rustore + '</button></div></div>' +
+      '<div class="note" style="margin-top:6px">' + t.apkNote + '</div></div>';
+    $('sPlay').onclick = function () { st.remove(); app.classList.remove('starting'); started = true; startClock(); save(); refresh(); resize(); };
+    $('sOpen').onclick = openInGame; $('sApk').onclick = apk; $('sRu').onclick = rustore;
+    wireLang(st, draw1);
+    resize();
+  };
+  // the card stands under the board in place of the controls (they come once the game starts)
+  app.classList.add('starting');
+  app.insertBefore(st, $('banner').nextSibling); draw1();
+}
+function showPause() {
+  if (!started || paused || g.status) return;
+  stopClock(); paused = true; save();
+  var o = document.createElement('div'); o.className = 'ov pause';
+  var draw1 = function () {
+    var ch = g.chMs >= 0 ? '<div class="info" style="color:var(--text);font-weight:600;margin-top:6px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, esc(friendName())) + '</div>' : '';
+    o.innerHTML = '<div class="card" style="border:1.5px solid var(--line)"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:30px">' + t.pauseTitle + '</h2>' + langBtn() + '</div>' +
+      '<div class="info" style="margin-top:4px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' + (SE > 0 ? '<div class="info">' + f(t.seLine, seText(SE)) + '</div>' : '') + ch +
+      '<div class="btns" style="margin-top:18px"><button class="pill filled" id="pRes">' + t.resume + '</button></div></div>' +
+      '<div class="plates"><button class="pill" id="pApk">' + t.apk + '</button><button class="pill acc" id="pApp">' + t.playApp + '</button></div>';
+    $('pRes').onclick = function () { o.remove(); paused = false; startClock(); refresh(); };
+    $('pApk').onclick = apk; $('pApp').onclick = openInGame; wireLang(o, draw1);
+  };
+  app.appendChild(o); draw1();
+}
+function onWon() {
+  stopClock(); clearHint(); refresh(); save();
+  var o = document.createElement('div'); o.className = 'ov win';
+  var draw1 = function () {
+    var ch = '';
+    if (g.chMs >= 0) {
+      var diff = Math.floor(g.elapsed / 1000) - Math.floor(g.chMs / 1000);
+      var verdict = diff < 0 ? f(t.faster, fmt(-diff * 1000)) : diff > 0 ? f(t.slower, fmt(diff * 1000), esc(friendName())) : t.tie;
+      ch = '<div class="info" style="color:' + (diff <= 0 ? 'var(--ok)' : 'var(--text)') + ';font-weight:600;margin-top:8px">' + f(t.chFriend, fmt(g.chMs), g.chErr, g.chHints, esc(friendName())) + '<br>' + verdict + '</div>';
+    }
+    o.innerHTML = '<div class="card"><div class="head" style="justify-content:center"><h2 style="text-align:center;font-size:32px;color:var(--accent)">' + t.solved + '</h2>' + langBtn() + '</div>' +
+      '<div class="info" style="color:var(--text);font-size:17px;margin-top:6px">' + levelName() + ' · ' + fmt(g.elapsed) + '</div>' +
+      '<div class="info">' + f(t.counts, g.errors, g.hints) + (SE > 0 ? '<br>' + f(t.seLine, seText(SE)) : '') + '</div>' + ch +
+      '<div class="btns"><button class="pill filled" id="wOpen">' + t.open + '</button><div class="two"><button class="pill" id="wApk">' + t.apk + '</button>' +
+      '<button class="pill" id="wRu">' + t.rustore + '</button></div></div><div class="note">' + t.apkNote + '</div></div>';
+    $('wOpen').onclick = openInGame; $('wApk').onclick = apk; $('wRu').onclick = rustore; wireLang(o, draw1);
+  };
+  app.appendChild(o); draw1();
+}
+var confirmEl = null;
+function confirmBox(msg, yes) {
+  var o = document.createElement('div'); o.className = 'ov win';
+  o.innerHTML = '<div class="card"><div style="font-weight:600;font-size:16px">' + msg + '</div><div class="two" style="margin-top:14px"><button class="pill" id="cNo">' + t.cancel +
+    '</button><button class="pill filled" id="cYes">' + t.yes + '</button></div></div>';
+  app.appendChild(o); $('cNo').onclick = function () { o.remove(); }; $('cYes').onclick = function () { o.remove(); yes(); };
+}
+function staticTexts() {
+  document.documentElement.lang = lang; document.title = (g.chMs >= 0 ? t.titleChallenge : t.titleShared) + ' · Sudoky';
+  $('bMenu').textContent = t.menu; $('bNew').textContent = t.newGame; $('bPause').textContent = t.pause; $('bWrite').textContent = t.writeAll;
+  $('bUndo').textContent = t.undo; $('bRedo').textContent = t.redo;
+  if (pendingHint) banner(hintText(pendingHint));
+}
+
+// ------------------------------------------------------------------ keyboard: 1–9 and the numpad — a short press is a tap, holding is a long press
+var keyTimers = {};
+document.addEventListener('keydown', function (e) {
+  var d = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
+  if (d) { e.preventDefault(); if (e.repeat || keyTimers[e.code]) return; var dg = +d[1];
+    keyTimers[e.code] = { done: false, t: setTimeout(function () { keyTimers[e.code].done = true; if (ui.mode === MODE_COLOR) return; peekKey(dg); }, 300) }; return; }
+  if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); eraserTap(); }
+});
+document.addEventListener('keyup', function (e) {
+  var d = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code), k = keyTimers[e.code];
+  if (!d || !k) return; clearTimeout(k.t); delete keyTimers[e.code];
+  if (!k.done) { var dg = +d[1]; if (ui.mode === MODE_COLOR) { if (dg <= 3) colorKey(dg); } else digitKey(dg); }
+});
+
+staticTexts(); updateLevelLine(); resize(); refresh(); showStart();
+
+// ------------------------------------------------------------------ no puzzle in the link: the page of the game
+function plainPage() {
+  var tt = TX[lang];
+  var app = $('app');
+  app.innerHTML = '<div class="plain"><div class="card"><div class="head"><img src="/icon.png" alt=""><h2>' + tt.titlePlain + '</h2>' +
+    '<button class="lang" id="lng"><b>' + lang.toUpperCase() + '</b><span>/</span>' + tt.other + '</button></div>' +
+    '<p style="color:var(--dim)">' + tt.leadPlain + '</p><div class="note">' + tt.getPlain + '</div>' +
+    '<div class="btns"><button class="pill filled" id="pa">' + tt.apk + '</button><button class="pill acc" id="pr">' + tt.rustore + '</button></div>' +
+    '<div class="note">' + tt.apkNote + '</div></div></div>';
+  app.style.overflow = 'auto';
+  $('pa').onclick = function () { location.href = APK; }; $('pr').onclick = function () { location.href = RUSTORE; };
+  $('lng').onclick = function () { lang = lang === 'ru' ? 'en' : 'ru'; plainPage(); };
+}
 })();
 </script>
 </body>
