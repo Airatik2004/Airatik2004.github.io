@@ -33,7 +33,7 @@
   .top { display:flex; align-items:center; padding:6px 8px 0; gap:4px; }
   .top .b { width:96px; height:44px; flex:none; } .top .b.r { width:118px; }
   .mid { flex:1; text-align:center; min-width:0; }
-  #lvl { font-size:13px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #lvl { font-size:12.5px; line-height:1.2; color:var(--dim); }   /* wraps to two lines, as in the game */
   #timer { font-size:20px; font-weight:600; }
   #errs { font-size:12px; color:var(--dim); white-space:nowrap; }
   .row2 { display:flex; align-items:center; justify-content:space-between; padding:2px 8px 0; height:46px; }
@@ -786,7 +786,8 @@ function fname() { return goldNick ? '<b style="color:' + C.gold + '">' + esc(fr
 function updateLevelLine() {
   var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + DEN + ')' : '') : '');
   if (g.chMs >= 0) s += ' · ' + f(t.goal, fmt(g.chMs));
-  $('lvl').textContent = s;
+  // the parts don't break inside: «SE 2,6 (1)», «цель 03:25» stay whole on a line
+  $('lvl').textContent = s.split(' · ').map(function (x) { return x.replace(/ /g, '\u00a0'); }).join(' · ');
 }
 function infoRows() {
   var r = '';
