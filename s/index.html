@@ -521,7 +521,7 @@ cv.addEventListener('pointerdown', function (e) {
     // the cursor cell stays shown (its houses and digit) while selecting, as in the white mode
     if (ui.fresh) { ui.fresh = false; ui.msel.fill(false); }   // something was entered: a new selection
     holdCell = c;
-    if (g.value[c]) { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 300); }
+    { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 400); }   // any cell: held, it is only lit
     addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return;
   }
   if (c < 0) return;
