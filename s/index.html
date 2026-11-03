@@ -229,7 +229,7 @@ var g = {
   chMs: D.res ? D.res[0] * 1000 : -1, chErr: D.res ? D.res[1] : 0, chHints: D.res ? D.res[2] : 0
 };
 var undoS = [], redoS = [], batch = false, batchPushed = false;
-var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, redCur: -1, fresh: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
+var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, multi: false, redCur: -1, redTouch: -1, fresh: false, drawing: false, drawColor: 1, qd: 0, anchor: -1, chosen: false,
   eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0, preRed: null };
 var pendingHint = null, hintNudge = false, hintCell = -1, hintUnit = -1;
 var started = false, paused = false, running = false, lastTick = 0;
@@ -405,7 +405,8 @@ function draw() {
       var a0 = (150 + 120 * j) * Math.PI / 180; cx.beginPath(); cx.moveTo(x + cs / 2, y + cs / 2); cx.arc(x + cs / 2, y + cs / 2, cs, a0, a0 + 2 * Math.PI / 3); cx.closePath(); cx.fill(); cx.restore();
     }
   }
-  if (quickActive && ui.sel >= 0 && ui.sel !== ui.anchor) { cx.strokeStyle = C.accent; cx.lineWidth = 2.5; var fx = ox + (ui.sel % 9) * cs, fy = oy + Math.floor(ui.sel / 9) * cs; cx.strokeRect(fx + 1.5, fy + 1.5, cs - 3, cs - 3); }
+  var frame = ui.multi ? ui.redTouch : quickActive && ui.sel !== ui.anchor ? ui.sel : -1;   // red mode: the last touched cell
+  if (frame >= 0) { cx.strokeStyle = C.accent; cx.lineWidth = 2.5; var fx = ox + (frame % 9) * cs, fy = oy + Math.floor(frame / 9) * cs; cx.strokeRect(fx + 1.5, fy + 1.5, cs - 3, cs - 3); }
   if (hintCell >= 0 && hintUnit >= 0) { cx.fillStyle = rgba(C.accent, 0.19); SX.UNITS[hintUnit].forEach(function (c) { if (c !== hintCell) cx.fillRect(ox + (c % 9) * cs, oy + Math.floor(c / 9) * cs, cs, cs); }); }
   if (flashCells) {
     var kf = (performance.now() - flashStart) / 650;
@@ -520,7 +521,7 @@ cv.addEventListener('pointerdown', function (e) {
     if (c < 0) { draw(); return; }
     // the cursor cell stays shown (its houses and digit) while selecting, as in the white mode
     if (ui.fresh) { ui.fresh = false; ui.msel.fill(false); }   // something was entered: a new selection
-    holdCell = c;
+    holdCell = c; ui.redTouch = c;
     { holdPrev = ui.msel[c]; holdTimer = setTimeout(function () { if (!ui.multi) return; ui.msel[holdCell] = holdPrev; peekCell = holdCell; vib(20); refresh(); }, 400); }   // any cell: held, it is only lit
     addMode = !ui.msel[c]; ui.msel[c] = addMode; refresh(); return;
   }
@@ -537,7 +538,7 @@ cv.addEventListener('pointermove', function (e) {
     return;
   }
   if (ui.multi && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
-  if (ui.multi) { if (c !== holdCell) clearTimeout(holdTimer); if (peekCell < 0 && ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
+  if (ui.multi) { if (c >= 0 && c !== ui.redTouch) { ui.redTouch = c; draw(); } if (c !== holdCell) clearTimeout(holdTimer); if (peekCell < 0 && ui.msel[c] !== addMode) { ui.msel[c] = addMode; refresh(); } return; }
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); draw(); }
 });
 function up() {
@@ -621,13 +622,13 @@ function speedTap() {
 function speedHold() { if (!started || paused || g.status) return; vib(20); ui.eraser = false; if (ui.multi) leaveRed(true); else enterRed(); }
 function enterRed() {
   ui.preRed = [ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, ui.mode === MODE_COLOR ? 1 : 0];
-  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; refresh();   // a held key's digit stays lit
+  peekCell = -1; ui.multi = true; ui.drawing = false; ui.quick = false; ui.msel.fill(false); ui.fresh = false; ui.redTouch = -1; ui.redCur = ui.sel; ui.sel = -1; ui.qd = 0; ui.chosen = false; refresh();   // a held key's digit stays lit
 }
 function leaveRed(toBlue) {
   peekCell = -1; ui.multi = false; ui.drawing = false; ui.quick = toBlue; var pr = ui.preRed; ui.preRed = null;
   ui.qd = 0; ui.chosen = false; ui.anchor = -1; ui.sel = -1;
   if (pr) { ui.sel = pr[2]; if (toBlue && pr[0] === 1 && pr[5] === (ui.mode === MODE_COLOR ? 1 : 0)) { ui.qd = pr[1]; ui.anchor = pr[3]; ui.chosen = pr[4] === 1; } }
-  ui.redCur = -1;
+  ui.redCur = -1; ui.redTouch = -1;
   var one = multiCells(); if (one.length === 1) { ui.sel = one[0]; ui.qd = 0; ui.anchor = -1; ui.chosen = false; }   // one cell selected: the cursor goes there
   // into the blue mode with a digit cell under the cursor: that digit is picked, as by a tap from the white mode
   var sc = ui.sel; if (toBlue && !ui.qd && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
