@@ -231,7 +231,7 @@ var g = {
   chMs: D.res ? D.res[0] * 1000 : -1, chErr: D.res ? D.res[1] : 0, chHints: D.res ? D.res[2] : 0
 };
 var undoS = [], redoS = [], batch = false, batchPushed = false;
-var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, link: false, redTouch: -1, drawColor: 1, qd: 0, anchor: -1, chosen: false,
+var ui = { mode: MODE_CORNER, lastNote: MODE_CORNER, quick: true, link: true, redTouch: -1, drawColor: 1, qd: 0, anchor: -1, chosen: false,
   eraser: false, sel: -1, msel: new Array(81).fill(false), peek: 0 };
 /** «Связь» on the third tab (a tap on the active «Цвет» switches it): lines between cells. */
 function drawing() { return ui.link && ui.mode === MODE_COLOR; }
@@ -993,7 +993,7 @@ function restartGame() {
   g.value = g.puzzle.slice(); g.corner = new Array(81).fill(''); g.center = new Array(81).fill(0); g.color = new Array(81).fill('');
   g.wrong = new Array(81).fill(false); g.links = []; g.errors = 0; g.hints = 0; g.elapsed = 0; g.status = 0;
   undoS = []; redoS = []; clearHint(); clearSel(); chain = []; peekCell = -1;
-  ui.mode = MODE_CORNER; ui.lastNote = MODE_CORNER; ui.quick = true; ui.link = false; ui.qd = 0; ui.anchor = -1; ui.chosen = false; ui.eraser = false; ui.sel = -1; ui.peek = 0;
+  ui.mode = MODE_CORNER; ui.lastNote = MODE_CORNER; ui.quick = true; ui.link = true; ui.qd = 0; ui.anchor = -1; ui.chosen = false; ui.eraser = false; ui.sel = -1; ui.peek = 0;
   paused = false; save(); startClock(); refresh();
 }
 function confirmBox(msg, yes, yesLabel) {
