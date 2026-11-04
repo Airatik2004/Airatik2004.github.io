@@ -725,17 +725,33 @@ function colorKey(k) {
 }
 function setMode(m) {
   if (!started || paused) return; ui.peek = 0;
-  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; var w0 = drawing(); ui.mode = m; if (w0 !== drawing()) leaveLinks(); refresh(); return; }
+  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; var w0 = drawing(); ui.mode = m; switchLinks(w0); refresh(); return; }
   // the same mode again: «Цвет» ↔ «Связь»; «Ответ» → the notes mode used last; «Угол» ↔ «Центр»
-  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; leaveLinks(); refresh(); return; }
+  if (m === ui.mode && m === MODE_COLOR) { var w1 = drawing(); ui.link = !ui.link; ui.qd = 0; ui.chosen = false; switchLinks(w1); refresh(); return; }
   if (m === ui.mode) m = m === MODE_ANSWER ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
   if (m <= MODE_CENTER) ui.lastNote = m;
   if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
-  var was = drawing(); ui.mode = m; if (was !== drawing()) leaveLinks();
+  var was = drawing(); ui.mode = m; switchLinks(was);
   refresh();
 }
 /** Into or out of «Связь»: no selection carries over, the colour of links is unpicked, the chain ends. */
 function leaveLinks() { clearSel(); ui.drawColor = 0; linkTail = -1; }
+// the selection of the mode left for «Связь», given back when «Связь» is left with nothing drawn
+var selBefore = null, selectedBefore = -1, redBefore = -1, linkDrew = false;
+/** After a mode change (as switchLinks in the game): into «Связь» only the last selected cell stays lit. */
+function switchLinks(was) {
+  if (was === drawing()) return;
+  if (!was) {
+    selBefore = ui.msel.slice(); selectedBefore = ui.sel; redBefore = ui.redTouch;
+    var last = hasSel() ? (ui.redTouch >= 0 ? ui.redTouch : ui.msel.lastIndexOf(true)) : ui.sel;
+    clearSel(); ui.drawColor = 0; linkTail = -1; linkDrew = false;
+    if (last >= 0) { if (ui.quick) { linkSel.push(last); ui.msel[last] = true; ui.sel = -1; } else ui.sel = last; }
+  } else {
+    clearSel();
+    if (!linkDrew && selBefore) { ui.msel = selBefore.slice(); ui.redTouch = redBefore; ui.sel = selectedBefore; }
+    selBefore = null; ui.drawColor = 0; linkTail = -1;
+  }
+}
 function speedTap() {
   if (!started || paused || g.status) return; ui.eraser = false; clearSel();
   // what is lit on the board (a held key or cell) stays lit
@@ -804,7 +820,7 @@ function celebrate(c, d) {
 }
 function onMistake() { vib([30, 70, 30]); cv.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(0)' }], 260); afterChange(); }
 function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { } }
-function afterChange() { refresh(); save(); }
+function afterChange() { if (drawing()) linkDrew = true; refresh(); save(); }
 function refresh() { refreshControls(); draw(); }
 
 // ------------------------------------------------------------------ the controls (as refreshControls)
