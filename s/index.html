@@ -33,7 +33,8 @@
   .top { display:flex; align-items:center; padding:6px 8px 0; gap:4px; }
   .top .b { width:96px; height:44px; flex:none; } .top .b.r { width:118px; }
   .mid { flex:1; text-align:center; min-width:0; }
-  #lvl { font-size:12.5px; line-height:1.2; color:var(--dim); }   /* wraps to two lines, as in the game */
+  #lvl { font-size:12.5px; line-height:1.2; color:var(--dim); }
+  #lvl > div { white-space:nowrap; }   /* each line shrinks on its own to fit (fitLevelLines), as in the game */
   #timer { font-size:20px; font-weight:600; }
   #errs { font-size:12px; color:var(--dim); white-space:nowrap; }
   .row2 { display:flex; align-items:center; justify-content:space-between; padding:2px 8px 0; height:46px; }
@@ -389,6 +390,7 @@ var ox = 0, oy = 0, cs = 0, DPR = 1, flashCells = null, flashStart = 0, addMode 
 function resize() {
   var r = $('boardWrap').getBoundingClientRect(); DPR = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); draw();
+  fitLevelLines();
 }
 window.addEventListener('resize', resize);
 function drawCentered(s, x, y) { cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(s, x, y); }
@@ -954,7 +956,18 @@ function fname() { return goldNick ? '<b style="color:' + C.gold + '">' + esc(fr
 function updateLevelLine() {
   // the level and the depth, the goal on its own line below (as in the game)
   var s = levelName() + (SE > 0 ? ' · SE ' + seText(SE) + (DEN > 0 ? ' (' + stepsText(DEN) + ')' : '') : '');
-  $('lvl').innerHTML = esc(s) + (g.chMs >= 0 ? '<br>' + esc(f(t.goal, fmt(g.chMs))) : '');
+  $('lvl').innerHTML = '<div>' + esc(s) + '</div>' + (g.chMs >= 0 ? '<div>' + esc(f(t.goal, fmt(g.chMs))) + '</div>' : '');
+  fitLevelLines();
+}
+/** Each line of the level line at the largest size (≤ 12.5px) at which it fits the column. */
+function fitLevelLines() {
+  var box = $('lvl'); if (!box) return;
+  var w = box.clientWidth; if (!w) return;
+  for (var i = 0; i < box.children.length; i++) {
+    var d = box.children[i], px = 12.5;
+    d.style.fontSize = '';
+    while (px > 8 && d.scrollWidth > w) { px -= 0.5; d.style.fontSize = px + 'px'; }
+  }
 }
 function infoRows() {
   var r = '';
