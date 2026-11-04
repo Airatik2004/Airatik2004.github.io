@@ -246,7 +246,7 @@ var KEY = 'sudoky:' + D.plain;
 
 function isGiven(c) { return g.puzzle[c] !== 0; }
 function snap() { return JSON.stringify({ v: g.value, k: g.corner, m: g.center, c: g.color, w: g.wrong, l: g.links,
-  u: [ui.mode, ui.lastNote, ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0] }); }
+  u: [ui.mode, ui.lastNote, ui.quick ? 1 : 0, ui.qd, ui.sel, ui.anchor, ui.chosen ? 1 : 0, linkTail] }); }
 function restore(s) { var o = JSON.parse(s); g.value = o.v; g.corner = o.k; g.center = o.m; g.color = o.c; g.wrong = o.w; g.links = o.l; return o.u; }
 function pushUndo() { if (batch) { if (batchPushed) return; batchPushed = true; } undoS.push(snap()); if (undoS.length > 300) undoS.shift(); redoS = []; }
 function placedCount(d) { var n = 0; for (var i = 0; i < 81; i++) if (g.value[i] === d && !g.wrong[i]) n++; return n; }
@@ -282,12 +282,18 @@ function erase(c) {
   if (!notes && !g.color[c]) return false;
   pushUndo(); g.corner[c] = ''; g.center[c] = 0; g.color[c] = ''; return true;
 }
-function toggleLink(a, b, k) {
-  if (g.status || a < 0 || b < 0) return false;
-  var key = Math.min(a, b) * 81 + Math.max(a, b);
-  pushUndo();
-  for (var i = 0; i < g.links.length; i++) { var l = g.links[i]; if (l % 6561 !== key) continue; g.links.splice(i, 1); if (Math.floor(l / 6561) !== k) g.links.push(k * 6561 + key); return true; }
-  g.links.push(k * 6561 + key); return true;
+// links («Связь»): a line a–b in colour k, or a dot when a === b; colours don't replace each other
+function linkV(a, b, k) { return k * 6561 + Math.min(a, b) * 81 + Math.max(a, b); }
+function addLink(a, b, k) { if (g.status || a < 0 || b < 0 || k < 1) return false; var v = linkV(a, b, k); if (g.links.indexOf(v) >= 0) return false; pushUndo(); g.links.push(v); return true; }
+function removeLink(a, b, k) { var v = linkV(a, b, k), i = g.links.indexOf(v); if (g.status || i < 0) return false; pushUndo(); g.links.splice(i, 1); return true; }
+function touches(l, c) { return Math.floor((l % 6561) / 81) === c || l % 81 === c; }
+function hasLinkColor(c, k) { return g.links.some(function (l) { return Math.floor(l / 6561) === k && touches(l, c); }); }
+function hasLinkLine(c, k) { return g.links.some(function (l) { return Math.floor(l / 6561) === k && Math.floor((l % 6561) / 81) !== l % 81 && touches(l, c); }); }
+/** A dot of colour k in c; if the colour is already there, it goes with its lines (a chain splits in two). */
+function toggleDot(c, k) {
+  if (g.status || c < 0 || k < 1) return false; pushUndo();
+  if (!hasLinkColor(c, k)) { g.links.push(linkV(c, c, k)); return true; }
+  g.links = g.links.filter(function (l) { return !(Math.floor(l / 6561) === k && touches(l, c)); }); return true;
 }
 function clearLinks(sel) {
   var any = g.links.some(function (l) { return sel[Math.floor((l % 6561) / 81)] || sel[l % 81]; });
@@ -379,7 +385,7 @@ function hold(el, tap, longp, repeat) {
 
 // ------------------------------------------------------------------ board drawing (as BoardView)
 var cv = $('board'), cx = cv.getContext('2d');
-var ox = 0, oy = 0, cs = 0, DPR = 1, flashCells = null, flashStart = 0, chain = [], addMode = true, lastErased = -1;
+var ox = 0, oy = 0, cs = 0, DPR = 1, flashCells = null, flashStart = 0, addMode = true, lastErased = -1;
 function resize() {
   var r = $('boardWrap').getBoundingClientRect(); DPR = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); draw();
@@ -457,29 +463,27 @@ function drawCenter(x, y, mask, selVal) {
   for (var k = 0; k < s.length; k++) { cx.font = '400 ' + size + 'px system-ui, Roboto, sans-serif'; var cw = cx.measureText(s[k]).width;
     noteStyle(+s[k] === selVal, size * (+s[k] === selVal ? 1.1 : 1)); drawCentered(s[k], st + cw / 2, y + cs * 0.56); st += cw; }
 }
-/** A swipe's cells as the corners of a line: cells along one straight line become one link, dots at the ends and turns. */
-function straighten(ch) {
-  var n = [];
-  ch.forEach(function (x) {
-    var k = n.length;
-    if (k >= 2) { var a = n[k - 2], b = n[k - 1], r1 = Math.floor(b / 9) - Math.floor(a / 9), c1 = b % 9 - a % 9, r2 = Math.floor(x / 9) - Math.floor(b / 9), c2 = x % 9 - b % 9;
-      if (r1 * c2 - c1 * r2 === 0 && r1 * r2 + c1 * c2 > 0 && SX.isPeer(a, x)) { n[k - 1] = x; return; } }
-    n.push(x);
-  });
-  return n;
-}
 function ax(c) { return ox + (c % 9) * cs + cs * 0.75; } function ay(c) { return oy + Math.floor(c / 9) * cs + cs * 0.75; }
 function drawLinks() {
   var ls = g.links.slice();
-  if (drawing() && ui.drawColor > 0) { var st = straighten(chain); for (var i = 1; i < st.length; i++) ls.push(ui.drawColor * 6561 + Math.min(st[i - 1], st[i]) * 81 + Math.max(st[i - 1], st[i])); }
   if (!ls.length) return;
   cx.lineCap = 'round'; cx.lineWidth = 2.6;
   ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81; if (a === b) return;
     cx.strokeStyle = rgba(CELL[k], 0.82); cx.beginPath(); cx.moveTo(ax(a), ay(a)); cx.lineTo(ax(b), ay(b)); cx.stroke(); });
   cx.lineCap = 'butt';
-  ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81; cx.fillStyle = rgba(CELL[k], 0.88);
-    var dot = function (c, r) { cx.beginPath(); cx.arc(ax(c), ay(c), r, 0, 7); cx.fill(); };
-    if (a === b) dot(a, cs * 0.11); else { dot(a, cs * 0.065); dot(b, cs * 0.065); } });
+  // the ends of lines: small dots; dots of their own: big, split in parts by colour (as cell colours)
+  var dots = {};
+  ls.forEach(function (l) { var k = Math.floor(l / 6561), a = Math.floor((l % 6561) / 81), b = l % 81;
+    if (a === b) { (dots[a] = dots[a] || []).push(k); return; }
+    cx.fillStyle = rgba(CELL[k], 0.88);
+    [a, b].forEach(function (c) { cx.beginPath(); cx.arc(ax(c), ay(c), cs * 0.065, 0, 7); cx.fill(); }); });
+  var r = cs * 0.16, D = Math.PI / 180;
+  Object.keys(dots).forEach(function (key) { var c = +key, ks = dots[key].slice(0, 3), x = ax(c), y = ay(c);
+    ks.forEach(function (k, j) { cx.fillStyle = rgba(CELL[k], 0.91); cx.beginPath();
+      if (ks.length === 1) cx.arc(x, y, r, 0, 7);
+      else { var st = ks.length === 2 ? (j === 0 ? 135 : 315) : (j === 0 ? 150 : j === 1 ? 270 : 30), sw = ks.length === 2 ? 180 : 120;
+        cx.moveTo(x, y); cx.arc(x, y, r, st * D, (st + sw) * D); cx.closePath(); }
+      cx.fill(); }); });
 }
 function drawStatus() {
   var s = 22, x = ox + 2, y = oy - s - 4;
@@ -539,7 +543,7 @@ cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 cv.addEventListener('pointerdown', function (e) {
   if (!started || paused || e.button !== 0) return;
   cv.setPointerCapture(e.pointerId); down = true; var c = cellAt(e);
-  if (drawing() && !ui.eraser) { chain = c >= 0 ? [c] : []; markChain(); draw(); return; }
+  if (drawing() && !ui.eraser) { holdCell = c; lastCell = c; moved = false; return; }   // «Связь»: taps draw, a swipe only moves the selected cell
   if (ui.quick && ui.eraser) { if (c >= 0) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
   if (ui.quick) {
     // a tap acts on lifting the finger; a swipe with a digit picked puts it into every cell it passes, without one — selects;
@@ -556,9 +560,7 @@ cv.addEventListener('pointerdown', function (e) {
 cv.addEventListener('pointermove', function (e) {
   if (!down || !started || paused) return; var c = cellAt(e); if (c < 0) return;
   if (drawing() && !ui.eraser) {
-    if (!chain.length) return; var last = chain[chain.length - 1];
-    if (chain.length >= 2 && c === chain[chain.length - 2]) { chain.pop(); markChain(); draw(); }
-    else if (c !== last && SX.isPeer(last, c)) { chain.push(c); markChain(); draw(); }
+    if (holdCell >= 0 && c !== lastCell) { moved = true; lastCell = c; peekCell = -1; ui.sel = c; draw(); }
     return;
   }
   if (ui.quick && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
@@ -582,23 +584,49 @@ cv.addEventListener('pointermove', function (e) {
   }
   if (c !== ui.sel) { ui.sel = c; onCellSelected(); draw(); }
 });
-/** No colour picked: the swipe so far is the selection. */
-function markChain() { if (ui.drawColor > 0) return; clearSel(); chain.forEach(function (x) { ui.msel[x] = true; }); linkSel = chain.slice(); }
-/** Links along a straightened swipe, each corner joined to the next (a single cell — a circle in it). */
-function drawLinkChain(ch) {
-  if (!ch.length || ui.drawColor <= 0 || g.status) return;
-  var any = false; batch = true; batchPushed = false;
-  if (ch.length === 1) any = toggleLink(ch[0], ch[0], ui.drawColor); else for (var i = 1; i < ch.length; i++) any = toggleLink(ch[i - 1], ch[i], ui.drawColor) || any;
-  batch = false; if (any) { vib(10); afterChange(); } else draw();
+// «Связь» in «Быстрый»: the cell the chain being drawn ends in (the next tap is joined to it), -1 — none
+var linkTail = -1;
+/** A tap on a cell in «Связь» (as linkTap in the game). */
+function linkTap(c) {
+  if (g.status || c < 0) return; peekCell = -1; var k = ui.drawColor;
+  if (!ui.quick) {
+    if (k > 0) { ui.sel = c; if (toggleDot(c, k)) { vib(10); afterChange(); } else refresh(); }
+    else { ui.sel = ui.sel === c ? -1 : c; refresh(); }
+    return;
+  }
+  if (k === 0) { var i = linkSel.indexOf(c); if (i >= 0) { linkSel.splice(i, 1); ui.msel[c] = false; } else { linkSel.push(c); ui.msel[c] = true; } ui.sel = -1; refresh(); return; }
+  ui.sel = c;
+  if (linkTail < 0) {
+    if (hasLinkColor(c, k) && !hasLinkLine(c, k)) { toggleDot(c, k); vib(10); afterChange(); return; }
+    if (!hasLinkColor(c, k)) { addLink(c, c, k); vib(10); }
+    linkTail = c; afterChange(); return;
+  }
+  if (c === linkTail) { linkTail = -1; refresh(); return; }   // the last cell again: the chain ends
+  joinLink(linkTail, c, k); linkTail = c; vib(10); afterChange();
+}
+/** A line a–b in colour k as one move; a dot of k at either end becomes a plain end of the line. */
+function joinLink(a, b, k) { batch = true; batchPushed = false; addLink(a, b, k); removeLink(a, a, k); removeLink(b, b, k); batch = false; }
+function linkColorKey(k) {
+  if (ui.drawColor === k) { ui.drawColor = 0; linkTail = -1; clearSel(); refresh(); return; }
+  if (!ui.quick) {
+    if (ui.drawColor === 0 && ui.sel >= 0 && !g.status) { if (toggleDot(ui.sel, k)) afterChange(); return; }
+    ui.drawColor = k; refresh(); return;
+  }
+  linkTail = -1;
+  if (ui.drawColor === 0 && linkSel.length && !g.status) {
+    var ch = linkSel.slice(); clearSel(); ui.drawColor = k; batch = true; batchPushed = false;
+    if (ch.length === 1) { if (!hasLinkColor(ch[0], k)) addLink(ch[0], ch[0], k); }
+    else for (var i = 1; i < ch.length; i++) { addLink(ch[i - 1], ch[i], k); removeLink(ch[i - 1], ch[i - 1], k); removeLink(ch[i], ch[i], k); }
+    batch = false; linkTail = ch[ch.length - 1]; ui.sel = linkTail; afterChange(); return;
+  }
+  clearSel(); ui.drawColor = k; refresh();
 }
 function up(e) {
   clearTimeout(holdTimer);
   if (!down) return; down = false; lastErased = -1;
   if (drawing() && !ui.eraser) {
-    if (chain.length) {
-      var ch = chain; chain = [];
-      if (ui.drawColor > 0) drawLinkChain(straighten(ch)); else refresh();   // no colour: the cells stay selected
-    }
+    if (holdCell >= 0 && e.type === 'pointerup') { if (!moved) linkTap(holdCell); else { ui.sel = lastCell; onCellSelected(); draw(); } }
+    holdCell = -1;
     return;
   }
   if (ui.quick && !ui.eraser) {
@@ -688,13 +716,7 @@ function digitKey(d) {
 function peekKey(d) { if (!started || paused) return; peekCell = -1; if (ui.quick) ui.qd = 0; if (!hasSel()) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
 function colorKey(k) {
   if (!started || paused) return; ui.eraser = false; peekCell = -1;
-  if (drawing()) {
-    // the colour of the next lines; a tap on the picked one takes it off (a swipe then only selects, a colour joins the cells)
-    if (ui.drawColor === k) { ui.drawColor = 0; clearSel(); refresh(); return; }
-    if (ui.drawColor === 0 && linkSel.length) { var ch = linkSel.slice(); clearSel(); ui.drawColor = k; drawLinkChain(straighten(ch)); }
-    else ui.drawColor = k;
-    refresh(); return;
-  }
+  if (drawing()) { linkColorKey(k); return; }
   if (ui.quick && hasSel()) { selInput(k); return; }
   if (ui.quick) {
     if ((ui.qd === 0 || ui.chosen) && cellTakesInput(ui.sel)) { ui.anchor = ui.sel; input(k); ui.qd = k; refresh(); }
@@ -705,8 +727,8 @@ function setMode(m) {
   if (!started || paused) return; ui.peek = 0;
   if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; ui.mode = m; refresh(); return; }
   // the same mode again: «Цвет» ↔ «Связь»; «Ответ» → the notes mode used last; «Угол» ↔ «Центр»
-  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; clearSel(); refresh(); return; }
-  if (drawing() && m !== ui.mode) clearSel();   // cells picked for links
+  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; clearSel(); linkTail = -1; refresh(); return; }
+  if (drawing() && m !== ui.mode) { clearSel(); linkTail = -1; }   // cells picked for links, the chain
   if (m === ui.mode) m = m === MODE_ANSWER ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
   if (m <= MODE_CENTER) ui.lastNote = m;
   if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
@@ -716,7 +738,7 @@ function speedTap() {
   if (!started || paused || g.status) return; ui.eraser = false; clearSel();
   // what is lit on the board (a held key or cell) stays lit
   if (ui.quick && ui.qd && ui.anchor >= 0) ui.sel = ui.anchor;
-  ui.quick = !ui.quick; ui.qd = 0; ui.chosen = false;
+  ui.quick = !ui.quick; ui.qd = 0; ui.chosen = false; linkTail = -1;
   var sc = ui.sel; if (ui.quick && ui.mode !== MODE_COLOR && sc >= 0 && g.value[sc] && !g.wrong[sc]) { ui.qd = g.value[sc]; ui.anchor = sc; }
   refresh();
 }
@@ -767,6 +789,8 @@ function applyUi(u) {
   if (!u) return;
   if (u[2] === 2) { ui.mode = u[0]; ui.lastNote = u[1]; ui.eraser = false; ui.peek = 0; return; }
   ui.mode = u[0]; ui.lastNote = u[1]; ui.quick = u[2] === 1; ui.qd = u[3]; ui.sel = u[4]; ui.anchor = u[5]; ui.chosen = u[6] === 1; ui.eraser = false; ui.peek = 0;
+  // the chain goes on from where it ends now (only in the colour that is picked)
+  linkTail = u.length > 7 && u[7] >= 0 && ui.drawColor > 0 && hasLinkColor(u[7], ui.drawColor) ? u[7] : -1;
 }
 /** The next digit after d (9 → 1) that is not finished yet, 0 if all are. */
 function nextOpen(d) { for (var k = 1; k <= 8; k++) { var e = (d - 1 + k) % 9 + 1; if (placedCount(e) < 9) return e; } return 0; }
@@ -992,7 +1016,7 @@ var confirmEl = null;
 function restartGame() {
   g.value = g.puzzle.slice(); g.corner = new Array(81).fill(''); g.center = new Array(81).fill(0); g.color = new Array(81).fill('');
   g.wrong = new Array(81).fill(false); g.links = []; g.errors = 0; g.hints = 0; g.elapsed = 0; g.status = 0;
-  undoS = []; redoS = []; clearHint(); clearSel(); chain = []; peekCell = -1;
+  undoS = []; redoS = []; clearHint(); clearSel(); linkTail = -1; peekCell = -1;
   ui.mode = MODE_CORNER; ui.lastNote = MODE_CORNER; ui.quick = true; ui.link = true; ui.drawColor = 0; ui.qd = 0; ui.anchor = -1; ui.chosen = false; ui.eraser = false; ui.sel = -1; ui.peek = 0;
   paused = false; save(); startClock(); refresh();
 }
