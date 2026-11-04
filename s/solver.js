@@ -85,192 +85,207 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return false;
     }
 
-    const T_HIDDEN = 1, T_NAKED = 2, T_SUBSETS = 3, T_FISH = 4, T_WINGS = 5, T_ADVANCED = 6, T_HARDER = 7, T_INVALID = 8;
+    /**
+     * Technique tiers («лесенка приёмов»), one per level: 1 hidden singles (Новичок), 2 naked singles and
+     * locked candidates (Лёгкий), 3 pairs, triples, X-wing and swordfish (Средний), 4 XY-, XYZ-wing and unique
+     * rectangles (Сложный), 5 BUG+1, skyscraper, kite, empty rectangle, finned fish and X-chain (Эксперт),
+     * 6 W-, M-, S-wing, XY-chain, ring and alternating chain (Мастер), 7 beyond the help (Гроссмейстер).
+     */
+    const T_HIDDEN = 1, T_NAKED = 2, T_MEDIUM = 3, T_HARD = 4, T_EXPERT = 5, T_MASTER = 6, T_HARDER = 7, T_INVALID = 8;
 
-    /** Technique codes beyond singles (W_* numbers plus the basic ones). */
-    const W_LOCKED = 15, W_PAIRS = 16, W_TRIPLES = 17, W_HIDDEN = 18, W_NAKED = 19;
+    /** Technique codes, as in Sudoku.java (bits of the saved ✓ marks there: never renumbered). */
+    const W_XWING = 1, W_SKYSCRAPER = 2, W_SWORDFISH = 3, W_XYWING = 4, W_XYZWING = 5, W_WWING = 6,
+            W_EMPTYRECT = 7, W_UNIQUERECT = 8, W_XCHAIN = 9, W_MWING = 10, W_SWING = 11, W_XYCHAIN = 12, W_FINNED = 13,
+            W_BUG = 14, W_LOCKED = 15, W_PAIRS = 16, W_TRIPLES = 17, W_HIDDEN = 18, W_NAKED = 19, W_KITE = 20,
+            W_FINNEDSWORD = 21, W_RING = 22, W_AIC = 23;
+
+    /** Bit of a unique rectangle of type 1–4 (beside W_UNIQUERECT itself) in the technique masks. */
+    function urBit(type) { return 24 + type; }
 
     /** Tier of each technique code. */
-    const TIER_OF = [0, T_FISH, T_FISH, T_FISH, T_WINGS, T_WINGS, T_WINGS, T_ADVANCED, T_ADVANCED, T_ADVANCED,
-            T_ADVANCED, T_ADVANCED, T_ADVANCED, T_WINGS, T_ADVANCED, T_NAKED, T_SUBSETS, T_SUBSETS, T_HIDDEN, T_NAKED,
-            T_WINGS, T_ADVANCED, T_ADVANCED, T_HARDER];
+    const TIER_OF = [0,
+            T_MEDIUM, T_EXPERT, T_MEDIUM, T_HARD, T_HARD, T_MASTER,
+            T_EXPERT, T_HARD, T_EXPERT, T_MASTER, T_MASTER, T_MASTER,
+            T_EXPERT, T_EXPERT, T_NAKED, T_MEDIUM, T_MEDIUM, T_HIDDEN, T_NAKED,
+            T_EXPERT, T_EXPERT, T_MASTER, T_MASTER];
 
-    /** Approximate Sudoku Explainer rating of each technique code (tenths). */
-    // ordered by our levels: Сложный ≤ 4,0, Эксперт ≤ 4,6, Мастер 4,5–6,9; chains rise with their length (see chainSe)
-    const SE_OF = [0, 32, 40, 38, 42, 44, 44, 50, 45, 52, 52, 54, 50, 46, 56, 26, 30, 36, 15, 23, 41, 48, 65, 70];
+    /** What one elimination step found: {code, se, ur}. */
+    function found(st, code, se) { st.code = code; st.se = se; st.ur = 0; return true; }
 
-    /** Length of the chain found by the last xChain (links) / xyChain (cells), per thread. */
-    const CHAIN = new Array(1).fill(0);
+    /** SE of a chain as Sudoku Explainer rates it: loop of one kind 6,5, chain 6,6, mixed 7,0, + the length bonus. */
+    function chainSe(loop, mixed, nodes) { return (mixed ? 70 : loop ? 65 : 66) + lengthBonus(nodes); }
 
-    /**
-     * The variant of the last locked / pairs / triples / unique-rectangle step (per thread), rated as
-     * Sudoku Explainer does: pointing 2,6 · claiming 2,8; naked pair 3,0 · hidden 3,4; naked triple 3,6 ·
-     * hidden 4,0; unique rectangle type 1 and 4 — 4,5, type 2 — 4,6, type 3 — 4,6 (with a pair) or 4,7
-     * (with a triple).
-     */
-    const VARIANT_SE = new Array(1).fill(0);
-
-    /** SE of one step: chains get more for every extra link, up to 6,9; variants as in VARIANT_SE. */
-    function stepSe(w) {
-        if (w == W_LOCKED || w == W_PAIRS || w == W_TRIPLES || w == W_UNIQUERECT) {
-            let v = VARIANT_SE[0];
-            if (v > 0) return v;
-        }
-        let n = CHAIN[0];
-        if (w == W_XCHAIN) return Math.min(69, 52 + 2 * Math.max(0, n - 3));       // 3 links 5,2 · 5 → 5,6 · 7 → 6,0 …
-        if (w == W_XYCHAIN) return Math.min(69, 50 + 4 * Math.max(0, n - 3));      // 3 cells 5,0 · 4 → 5,4 · 5 → 5,8 …
-        if (w == W_RING || w == W_AIC) return (ALT[1] === 1 ? 70 : w == W_RING ? 65 : 66) + lengthBonus(ALT[0]);
-        return SE_OF[w];
-    }
-
-    /**
-     * Applies the simplest elimination technique (anything but singles) that works, in the order of
-     * the levels; returns its code, 0 if none.
-     */
-    function step(val, cand, chains) {
-        if (chains === undefined) chains = true;
-        if (locked(cand)) return W_LOCKED;
-        if (subsetsN(val, cand, 2)) return W_PAIRS;
-        if (subsetsN(val, cand, 3)) return W_TRIPLES;
-        if (fish(val, cand, 2)) return W_XWING;
-        if (skyscraper(val, cand)) return W_SKYSCRAPER;
-        if (fish(val, cand, 3)) return W_SWORDFISH;
-        if (kite(val, cand)) return W_KITE;
-        if (xyWing(val, cand)) return W_XYWING;
-        if (xyzWing(val, cand)) return W_XYZWING;
-        if (wWing(val, cand)) return W_WWING;
-        if (finnedFish(val, cand, 2)) return W_FINNED;
-        if (finnedFish(val, cand, 3)) return W_FINNEDSWORD;
-        if (wing3(val, cand, 1)) return W_MWING;
-        if (wing3(val, cand, 2)) return W_SWING;
-        if (emptyRectangle(val, cand)) return W_EMPTYRECT;
-        if (uniqueRectangle(val, cand)) { UR_TYPE[0] = 1; VARIANT_SE[0] = 45; return W_UNIQUERECT; }
-        for (let ty = 2; ty <= 4; ty++) if (urType(val, cand, ty)) {
-            UR_TYPE[0] = ty;
-            VARIANT_SE[0] = ty == 2 ? 46 : ty == 3 ? 45 + UR3_SUBSET[0] : 45;
-            return W_UNIQUERECT;
-        }
-        if (bugPlusOne(val, cand)) return W_BUG;
-        if (xChain(val, cand)) return W_XCHAIN;
-        if (xyChain(val, cand)) return W_XYCHAIN;
-        if (chains) { var aw = altChain(val, cand); if (aw > 0) return aw; }
-        return 0;
-    }
-
+    /** SE's bonus for a long chain (tenths): +1 each time the length passes 4, 6, 8, 12, 16, 24, 32 … */
     function lengthBonus(nodes) {
-        var added = 0, ceil = 4, odd = false;
+        let added = 0, ceil = 4;
+        let odd = false;
         while (nodes > ceil) { added++; ceil = odd ? Math.floor(ceil * 4 / 3) : Math.floor(ceil * 3 / 2); odd = !odd; }
         return added;
     }
 
-    const W_RING = 22, W_AIC = 23;
-    const ALT = [0, 0];
+    /** The simplest elimination technique that works (by levels, inside a level by SE); chains = false: no ring and AIC. */
+    function step(val, cand, chains, st) {
+        for (let a = 0; a < ATOMS; a++) {
+            let se = atom(val, cand, a);
+            if (se > 0) { found(st, ATOM_CODE[a], se); st.ur = ATOM_UR[a]; return true; }
+        }
+        return chains && altChain(val, cand, st);
+    }
 
-    /** Ring («Мастер») or alternating chain (AIC, «Гроссмейстер»), as Sudoku.java altChain. */
-    function altChain(val, cand) {
-        var bestRing = Infinity, bestAic = Infinity, ringEl = null, aicEl = null, ringMixed = 0, aicMixed = 0;
-        var par = new Int32Array(1620), dist = new Int32Array(1620), qu = new Int32Array(1620), path = new Int32Array(1620);
-        for (var sc = 0; sc < 81; sc++) {
-            if (val[sc] !== 0) continue;
-            for (var sd = 1; sd <= 9; sd++) {
-                if ((cand[sc] & (1 << sd)) === 0) continue;
-                var s = sc * 10 + sd;
-                par.fill(-2);
-                var head = 0, tail = 0;
-                par[s * 2] = -1; dist[s * 2] = 0; qu[tail++] = s * 2;
-                while (head < tail) {
-                    var st = qu[head++], nd = st >> 1, c = Math.floor(nd / 10), d = nd % 10;
-                    var dn = dist[st] + 1, m;
-                    if (dn >= bestRing && dn >= bestAic) break;
-                    if ((st & 1) === 0) {
-                        if (bitCount(cand[c]) === 2) {
-                            var o = ntz(cand[c] & ~(1 << d));
-                            m = (c * 10 + o) * 2 + 1;
-                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
-                        }
-                        for (var u of CELL_UNITS[c]) {
-                            var other = -1, k = 0;
-                            for (var q of UNITS[u]) if (val[q] === 0 && (cand[q] & (1 << d)) !== 0) { k++; if (q !== c) other = q; }
-                            if (k !== 2) continue;
-                            m = (other * 10 + d) * 2 + 1;
-                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
-                        }
-                    } else {
-                        for (var o2 = 1; o2 <= 9; o2++) {
-                            if (o2 === d || (cand[c] & (1 << o2)) === 0) continue;
-                            m = (c * 10 + o2) * 2;
-                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
-                        }
-                        for (var q2 of PEERS[c]) {
-                            if (val[q2] !== 0 || (cand[q2] & (1 << d)) === 0) continue;
-                            m = (q2 * 10 + d) * 2;
-                            if (par[m] === -2) { par[m] = st; dist[m] = dn; qu[tail++] = m; }
-                        }
-                    }
-                }
-                for (var i = 0; i < tail; i++) {
-                    var st2 = qu[i];
-                    if ((st2 & 1) === 0) continue;
-                    var len = dist[st2] + 1;
-                    if (len < 4 || (len >= bestRing && len >= bestAic)) continue;
-                    var t = st2 >> 1, kk = 0;
-                    for (var x = st2; x >= 0; x = par[x]) path[kk++] = x;
-                    var distinct = true;
-                    for (var a = 0; a < kk && distinct; a++) for (var b = a + 1; b < kk; b++) if ((path[a] >> 1) === (path[b] >> 1)) { distinct = false; break; }
-                    if (!distinct) continue;
-                    var cellL = false, houseL = false;
-                    for (a = 0; a + 1 < kk; a++) if ((path[a] & 1) === 1) { if (Math.floor((path[a] >> 1) / 10) === Math.floor((path[a + 1] >> 1) / 10)) cellL = true; else houseL = true; }
-                    var tc = Math.floor(t / 10), td = t % 10;
-                    var closes = t !== s && ((tc === sc && td !== sd) || (td === sd && isPeer(tc, sc)));
-                    var el;
-                    if (closes && len < bestRing) {
-                        el = [];
-                        for (a = 0; a + 1 < kk; a++) if ((path[a] & 1) === 0) weakElims(val, cand, path[a] >> 1, path[a + 1] >> 1, el);
-                        weakElims(val, cand, t, s, el);
-                        if (el.length) { bestRing = len; ringEl = el; ringMixed = cellL && houseL ? 1 : 0; }
-                    }
-                    if (len < bestAic) {
-                        el = [];
-                        if (t === s) { for (var o3 = 1; o3 <= 9; o3++) if (o3 !== sd && (cand[sc] & (1 << o3)) !== 0) el.push(sc * 10 + o3); }
-                        else if (tc === sc) { for (o3 = 1; o3 <= 9; o3++) if (o3 !== sd && o3 !== td && (cand[sc] & (1 << o3)) !== 0) el.push(sc * 10 + o3); }
-                        else if (td === sd) { for (var q3 = 0; q3 < 81; q3++) if (q3 !== sc && q3 !== tc && val[q3] === 0 && (cand[q3] & (1 << sd)) !== 0 && isPeer(q3, sc) && isPeer(q3, tc)) el.push(q3 * 10 + sd); }
-                        else if (isPeer(tc, sc)) {
-                            if ((cand[tc] & (1 << sd)) !== 0) el.push(tc * 10 + sd);
-                            if ((cand[sc] & (1 << td)) !== 0) el.push(sc * 10 + td);
-                        }
-                        if (el.length) { bestAic = len; aicEl = el; aicMixed = cellL && houseL ? 1 : 0; }
-                    }
-                }
-            }
-        }
-        var e2;
-        if (aicEl && !ringEl) {
-            for (e2 of aicEl) cand[Math.floor(e2 / 10)] &= ~(1 << (e2 % 10));
-            ALT[0] = bestAic; ALT[1] = aicMixed;
-            return W_AIC;
-        }
-        if (ringEl) {
-            for (e2 of ringEl) cand[Math.floor(e2 / 10)] &= ~(1 << (e2 % 10));
-            ALT[0] = bestRing; ALT[1] = ringMixed;
-            return W_RING;
+    const ATOMS = 24;
+    const ATOM_CODE = [
+            W_LOCKED,
+            W_PAIRS, W_XWING, W_PAIRS, W_TRIPLES, W_SWORDFISH, W_TRIPLES,
+            W_XYWING, W_XYZWING, W_UNIQUERECT, W_UNIQUERECT, W_UNIQUERECT, W_UNIQUERECT,
+            W_BUG, W_SKYSCRAPER, W_KITE, W_EMPTYRECT, W_FINNED, W_FINNEDSWORD, W_XCHAIN,
+            W_WWING, W_MWING, W_SWING, W_XYCHAIN];
+    const ATOM_UR = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    /** Step a of the ladder: its SE (tenths) if it removed something, 0 if not. */
+    function atom(val, cand, a) {
+        let v;
+        switch (a) {
+            case 0: return locked(cand);
+            case 1: return subsetsPass(val, cand, 2, false) ? 30 : 0;
+            case 2: return fish(val, cand, 2) ? 32 : 0;
+            case 3: return subsetsPass(val, cand, 2, true) ? 34 : 0;
+            case 4: return subsetsPass(val, cand, 3, false) ? 36 : 0;
+            case 5: return fish(val, cand, 3) ? 38 : 0;
+            case 6: return subsetsPass(val, cand, 3, true) ? 40 : 0;
+            case 7: return xyWing(val, cand) ? 42 : 0;
+            case 8: return xyzWing(val, cand) ? 44 : 0;
+            case 9: return uniqueRectangle(val, cand) ? 45 : 0;
+            case 10: return urType(val, cand, 4);
+            case 11: return urType(val, cand, 2);
+            case 12: return urType(val, cand, 3);
+            case 13: return bugPlusOne(val, cand) ? 56 : 0;
+            case 14: return skyscraper(val, cand) ? chainSe(false, false, 4) : 0;
+            case 15: return kite(val, cand) ? chainSe(false, false, 4) : 0;
+            case 16: return emptyRectangle(val, cand) ? chainSe(false, false, 6) : 0;
+            case 17: return finnedFish(val, cand, 2) ? chainSe(false, false, 6) : 0;
+            case 18: return finnedFish(val, cand, 3) ? chainSe(false, false, 8) : 0;
+            case 19: return (v = xChain(val, cand)) > 0 ? chainSe(false, false, v + 1) : 0;
+            case 20: return wWing(val, cand) ? chainSe(false, true, 6) : 0;
+            case 21: return wing3(val, cand, 1) ? chainSe(false, true, 6) : 0;
+            case 22: return wing3(val, cand, 2) ? chainSe(false, true, 6) : 0;
+            case 23: return (v = xyChain(val, cand)) > 0 ? chainSe(false, false, 2 * v) : 0;
         }
         return 0;
     }
 
+    /** Ring or alternating chain (AIC), the shortest that removes something; the ring first (see Sudoku.java). */
+    function altChain(val, cand, st) {
+        let bestRing = Infinity, bestAic = Infinity;
+        let ringEl = null, aicEl = null;
+        let ringMixed = false, aicMixed = false;
+        let par = new Array(1620), dist = new Array(1620).fill(0), qu = new Array(1620).fill(0);
+        let path = new Array(1620).fill(0);
+        for (let sc = 0; sc < 81; sc++) {
+            if (val[sc] != 0) continue;
+            for (let sd = 1; sd <= 9; sd++) {
+                if ((cand[sc] & (1 << sd)) == 0) continue;
+                let s = sc * 10 + sd;
+                par.fill(-2);
+                let head = 0, tail = 0;
+                par[s * 2] = -1; dist[s * 2] = 0; qu[tail++] = s * 2;
+                while (head < tail) {
+                    let stt = qu[head++], n = stt >> 1, c = Math.floor(n / 10), d = n % 10;
+                    let dn = dist[stt] + 1;
+                    if (dn >= bestRing && dn >= bestAic) break;
+                    if ((stt & 1) == 0) {
+                        if (bitCount(cand[c]) == 2) {
+                            let o = ntz(cand[c] & ~(1 << d));
+                            let m = (c * 10 + o) * 2 + 1;
+                            if (par[m] == -2) { par[m] = stt; dist[m] = dn; qu[tail++] = m; }
+                        }
+                        for (const u of CELL_UNITS[c]) {
+                            let other = -1, k = 0;
+                            for (const q of UNITS[u]) if (val[q] == 0 && (cand[q] & (1 << d)) != 0) { k++; if (q != c) other = q; }
+                            if (k != 2) continue;
+                            let m = (other * 10 + d) * 2 + 1;
+                            if (par[m] == -2) { par[m] = stt; dist[m] = dn; qu[tail++] = m; }
+                        }
+                    } else {
+                        for (let o = 1; o <= 9; o++) {
+                            if (o == d || (cand[c] & (1 << o)) == 0) continue;
+                            let m = (c * 10 + o) * 2;
+                            if (par[m] == -2) { par[m] = stt; dist[m] = dn; qu[tail++] = m; }
+                        }
+                        for (const q of PEERS[c]) {
+                            if (val[q] != 0 || (cand[q] & (1 << d)) == 0) continue;
+                            let m = (q * 10 + d) * 2;
+                            if (par[m] == -2) { par[m] = stt; dist[m] = dn; qu[tail++] = m; }
+                        }
+                    }
+                }
+                for (let i = 0; i < tail; i++) {
+                    let stt = qu[i];
+                    if ((stt & 1) == 0) continue;
+                    let len = dist[stt] + 1;
+                    if (len < 4 || (len >= bestRing && len >= bestAic)) continue;
+                    let t = stt >> 1;
+                    let k = 0;
+                    for (let x = stt; x >= 0; x = par[x]) path[k++] = x;
+                    let distinct = true;
+                    for (let a = 0; a < k && distinct; a++) for (let b = a + 1; b < k; b++) if ((path[a] >> 1) == (path[b] >> 1)) { distinct = false; break; }
+                    if (!distinct) continue;
+                    let cellL = false, houseL = false;
+                    for (let a = 0; a + 1 < k; a++) {
+                        let sameCell = Math.floor((path[a] >> 1) / 10) == Math.floor((path[a + 1] >> 1) / 10);
+                        if (sameCell) cellL = true; else if ((path[a] & 1) == 1) houseL = true;
+                    }
+                    let tc = Math.floor(t / 10), td = t % 10;
+                    let closes = t != s && ((tc == sc && td != sd) || (td == sd && isPeer(tc, sc)));
+                    if (closes && len < bestRing) {
+                        let el = [];
+                        for (let a = 0; a + 1 < k; a++) if ((path[a] & 1) == 0) weakElims(val, cand, path[a] >> 1, path[a + 1] >> 1, el);
+                        weakElims(val, cand, t, s, el);
+                        if (el.length > 0) { bestRing = len; ringEl = el; ringMixed = houseL && (cellL || tc == sc); }
+                    }
+                    if (len < bestAic) {
+                        let el = [];
+                        if (t == s) { for (let o = 1; o <= 9; o++) if (o != sd && (cand[sc] & (1 << o)) != 0) el.push(sc * 10 + o); }
+                        else if (tc == sc) { for (let o = 1; o <= 9; o++) if (o != sd && o != td && (cand[sc] & (1 << o)) != 0) el.push(sc * 10 + o); }
+                        else if (td == sd) { for (let q = 0; q < 81; q++) if (q != sc && q != tc && val[q] == 0 && (cand[q] & (1 << sd)) != 0 && isPeer(q, sc) && isPeer(q, tc)) el.push(q * 10 + sd); }
+                        else if (isPeer(tc, sc)) {
+                            if ((cand[tc] & (1 << sd)) != 0) el.push(tc * 10 + sd);
+                            if ((cand[sc] & (1 << td)) != 0) el.push(sc * 10 + td);
+                        }
+                        if (el.length > 0) { bestAic = len; aicEl = el; aicMixed = houseL && cellL; }
+                    }
+                }
+            }
+        }
+        if (ringEl != null) {
+            for (const e of ringEl) cand[Math.floor(e / 10)] &= ~(1 << (e % 10));
+            return found(st, W_RING, chainSe(true, ringMixed, bestRing));
+        }
+        if (aicEl != null) {
+            for (const e of aicEl) cand[Math.floor(e / 10)] &= ~(1 << (e % 10));
+            return found(st, W_AIC, chainSe(false, aicMixed, bestAic));
+        }
+        return false;
+    }
+
+    /** A weak link of a ring turned strong: what sees both its ends goes. */
     function weakElims(val, cand, u, v, el) {
-        var uc = Math.floor(u / 10), ud = u % 10, vc = Math.floor(v / 10), vd = v % 10;
-        if (uc === vc) {
-            for (var o = 1; o <= 9; o++) if (o !== ud && o !== vd && (cand[uc] & (1 << o)) !== 0 && el.indexOf(uc * 10 + o) < 0) el.push(uc * 10 + o);
-        } else if (ud === vd) {
-            for (var q = 0; q < 81; q++)
-                if (q !== uc && q !== vc && val[q] === 0 && (cand[q] & (1 << ud)) !== 0 && isPeer(q, uc) && isPeer(q, vc) && el.indexOf(q * 10 + ud) < 0) el.push(q * 10 + ud);
+        let uc = Math.floor(u / 10), ud = u % 10, vc = Math.floor(v / 10), vd = v % 10;
+        if (uc == vc) {
+            for (let o = 1; o <= 9; o++) if (o != ud && o != vd && (cand[uc] & (1 << o)) != 0 && !el.includes(uc * 10 + o)) el.push(uc * 10 + o);
+        } else if (ud == vd) {
+            for (let q = 0; q < 81; q++)
+                if (q != uc && q != vc && val[q] == 0 && (cand[q] & (1 << ud)) != 0 && isPeer(q, uc) && isPeer(q, vc) && !el.includes(q * 10 + ud)) el.push(q * 10 + ud);
         }
     }
 
-    /**
-     * Logical solve, always using the simplest available technique first.
-     * Returns {maxTierUsed, placements, state} where state: 0 solved, 1 stuck, 2 contradiction.
-     */
+    /** Candidates of a grid: every digit its peers don't hold. */
+    function candidates(val) {
+        let cand = new Array(81);
+        for (let c = 0; c < 81; c++) cand[c] = val[c] == 0 ? 0x3FE : 0;
+        for (let c = 0; c < 81; c++) if (val[c] != 0) for (const p of PEERS[c]) cand[p] &= ~(1 << val[c]);
+        return cand;
+    }
+
     function contradiction(val, cand) {
         for (let c = 0; c < 81; c++) if (val[c] == 0 && cand[c] == 0) return true;
         for (let u = 0; u < 27; u++) {
@@ -319,11 +334,11 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return placed;
     }
 
-    /** Pointing and claiming. */
+    /** Pointing (from a box onto a line) 2,6 and claiming (from a line into a box) 2,8: the SE, 0 if none. */
     function locked(cand) {
-        if (lockedPass(cand, true)) { VARIANT_SE[0] = 26; return true; }    // pointing: from a box onto a line
-        if (lockedPass(cand, false)) { VARIANT_SE[0] = 28; return true; }   // claiming: from a line into a box
-        return false;
+        if (lockedPass(cand, true)) return 26;
+        if (lockedPass(cand, false)) return 28;
+        return 0;
     }
 
     function lockedPass(cand, pointing) {
@@ -349,44 +364,6 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             }
         }
         return changed;
-    }
-
-    /** Naked and hidden pairs and triples. */
-    function subsets(val, cand) {
-        let changed = false;
-        for (let u = 0; u < 27; u++) {
-            let e = new Array(9).fill(0);
-            let m = 0;
-            for (const c of UNITS[u]) if (val[c] == 0) e[m++] = c;
-            // naked
-            for (let i = 0; i < m; i++) for (let j = i + 1; j < m; j++) {
-                let un = cand[e[i]] | cand[e[j]];
-                if (bitCount(un) == 2) changed |= eliminate(cand, e, m, un, i, j, -1);
-                for (let k = j + 1; k < m; k++) {
-                    let un3 = un | cand[e[k]];
-                    if (bitCount(un3) == 3) changed |= eliminate(cand, e, m, un3, i, j, k);
-                }
-            }
-            // hidden
-            let pos = new Array(10).fill(0);
-            let ds = new Array(9).fill(0);
-            let nd = 0;
-            for (let d = 1; d <= 9; d++) {
-                for (let i = 0; i < m; i++) if ((cand[e[i]] & (1 << d)) != 0) pos[d] |= 1 << i;
-                if (pos[d] != 0) ds[nd++] = d;
-            }
-            for (let a = 0; a < nd; a++) for (let b = a + 1; b < nd; b++) {
-                let pu = pos[ds[a]] | pos[ds[b]];
-                let keep2 = (1 << ds[a]) | (1 << ds[b]);
-                if (bitCount(pu) == 2) changed |= restrict(cand, e, m, pu, keep2);
-                for (let c = b + 1; c < nd; c++) {
-                    let pu3 = pu | pos[ds[c]];
-                    if (bitCount(pu3) == 3) changed |= restrict(cand, e, m, pu3, keep2 | (1 << ds[c]));
-                }
-            }
-            if (changed) return true;
-        }
-        return false;
     }
 
     /** X-wing (n=2) and swordfish (n=3), row- and column-based. */
@@ -466,10 +443,6 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return false;
     }
 
-    /** Tier-5 techniques, simplest first. */
-    const W_XWING = 1, W_SKYSCRAPER = 2, W_SWORDFISH = 3, W_XYWING = 4, W_XYZWING = 5, W_WWING = 6,
-            W_MWING = 10, W_SWING = 11, W_FINNED = 13, W_BUG = 14, W_KITE = 20, W_FINNEDSWORD = 21;
-
     /**
      * Воздушный змей (2-String Kite): a digit has two places in a row and two in a column; one end of the row
      * and one end of the column are in the same box (different cells). One of the two other ends holds the
@@ -508,14 +481,6 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return n == 2 ? [a, b] : null;
     }
 
-    /** Tier-6 techniques («Мастер»): numbered after the tier-5 ones, for hints. */
-    /** Type (1–4) of the unique rectangle found by the last step() on this thread. */
-    /** Type 3: how many other cells joined the roof in its naked subset (per thread). */
-    const UR3_SUBSET = new Array(1).fill(0);
-    const UR_TYPE = [1];
-    /** Bit in lastUsed() for a unique rectangle of type 1–4 (beside W_UNIQUERECT itself). */
-    function urBit(type) { return 24 + type; }
-    const W_EMPTYRECT = 7, W_UNIQUERECT = 8, W_XCHAIN = 9, W_XYCHAIN = 12;
 
     /**
      * Empty rectangle: in a box all candidates of d lie on one row R and one column C (an «L» or a
@@ -640,11 +605,11 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                 }
                 for (let t = 0; t < 81; t++) {
                     if (!on[t] || t == s || dOn[t] < 3) continue;   // length 1 is a plain strong link
-                    if (seenByAll(val, cand, bit, s, t)) { CHAIN[0] = dOn[t]; return true; }
+                    if (seenByAll(val, cand, bit, s, t)) return dOn[t];
                 }
             }
         }
-        return false;
+        return 0;
     }
 
     /**
@@ -776,11 +741,11 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                 for (let z = 0; z < 81; z++) {
                     let m = z * 10 + x;
                     if (z == a || !on[m] || cells[m] < 3) continue;
-                    if (seenByAll(val, cand, 1 << x, a, z)) { CHAIN[0] = cells[m]; return true; }
+                    if (seenByAll(val, cand, 1 << x, a, z)) return cells[m];
                 }
             }
         }
-        return false;
+        return 0;
     }
 
     /**
@@ -839,7 +804,6 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
      * Type 3: the roof's extra digits with one or two other cells of a shared unit form a naked subset.
      * Type 4: in a unit of the roof a has only the two roof places — then b leaves both roof cells.
      */
-    function uniqueRectangle24(val, cand) { return urType(val, cand, 0); }
 
     /** Unique rectangle of one type (2, 3 or 4); 0 = any of them. */
     function urType(val, cand, type) {
@@ -860,10 +824,10 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                     let e1 = cand[g1] & ~ab, e2 = cand[g2] & ~ab;
                     if (e1 == 0 || e2 == 0) continue;
                     // type 2
-                    if ((type == 0 || type == 2) && e1 == e2 && bitCount(e1) == 1 && seenByAll(val, cand, e1, g1, g2)) return true;
+                    if (type == 2 && e1 == e2 && bitCount(e1) == 1 && seenByAll(val, cand, e1, g1, g2)) return 46;
                     // type 3: the roof acts as one cell with candidates e1|e2 — a naked subset with other cells of a shared unit
                     let ex = e1 | e2;
-                    if ((type == 0 || type == 3) && bitCount(ex) <= 3) for (let u = 0; u < 27; u++) {
+                    if (type == 3 && bitCount(ex) <= 3) for (let u = 0; u < 27; u++) {
                         let h1 = false, h2 = false;
                         for (const c of UNITS[u]) { if (c == g1) h1 = true; if (c == g2) h2 = true; }
                         if (!h1 || !h2) continue;
@@ -876,17 +840,16 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                             let uni = ex;
                             for (let i = 0; i < on; i++) if ((sm & (1 << i)) != 0) uni |= cand[o[i]];
                             if (bitCount(uni) != sz + 1) continue;
-                            UR3_SUBSET[0] = sz;   // the roof + sz cells: a naked pair (1) or triple (2)
                             let ch = false;
                             for (let i = 0; i < on; i++) {
                                 if ((sm & (1 << i)) != 0) continue;
                                 if ((cand[o[i]] & uni) != 0) { cand[o[i]] &= ~uni; ch = true; }
                             }
-                            if (ch) return true;
+                            if (ch) return 45 + sz;
                         }
                     }
                     // type 4
-                    if (type == 0 || type == 4) for (let u = 0; u < 27; u++) {
+                    if (type == 4) for (let u = 0; u < 27; u++) {
                         let h1 = false, h2 = false;
                         for (const c of UNITS[u]) { if (c == g1) h1 = true; if (c == g2) h2 = true; }
                         if (!h1 || !h2) continue;
@@ -899,13 +862,13 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                             let other = ab & ~bit;
                             if ((cand[g1] & other) != 0 || (cand[g2] & other) != 0) {
                                 cand[g1] &= ~other; cand[g2] &= ~other;
-                                return true;
+                                return 45;
                             }
                         }
                     }
                 }
             }
-        return false;
+        return 0;
     }
 
     /**
@@ -1056,21 +1019,17 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
     // ---------------------------------------------------------------- hints
 
     /**
-     * Next logical move from the current answers. Returns {cell, digit, tier, unit}:
-     * tier = hardest technique needed to reach it (1..5, 6 = no logical move: guess),
+     * Next logical move from the current answers. Returns [cell, digit, tier, unit, technique]:
+     * tier = hardest tier needed to reach it (T_HARDER = no logical move: an assumption),
      * unit = unit index (0..8 rows, 9..17 cols, 18..26 boxes) for a hidden single, -1 otherwise.
+     * used[0] (if given) receives the techniques the hint is about.
      */
-    /** Techniques (bit per code) the last hint() on this thread was about: the steps on its way, or its single. */
-    const HINT_USED = new Array(1).fill(0);
-    function lastHintUsed() { return HINT_USED[0]; }
-
-    function hint(values, solution) {
-        let hu = HINT_USED;
+    function hint(values, solution, used) {
+        let hu = used || [0];
         hu[0] = 0;
         let val = values.slice();
-        let cand = new Array(81).fill(0);
-        for (let c = 0; c < 81; c++) cand[c] = val[c] == 0 ? 0x3FE : 0;
-        for (let c = 0; c < 81; c++) if (val[c] != 0) for (const p of PEERS[c]) cand[p] &= ~(1 << val[c]);
+        let cand = candidates(val);
+        let st = {code: 0, se: 0, ur: 0};
         let tier = T_HIDDEN, sub = 0;
         let unitOrder = new Array(27).fill(0);
         for (let i = 0; i < 9; i++) { unitOrder[i] = 18 + i; unitOrder[9 + i] = i; unitOrder[18 + i] = 9 + i; }
@@ -1094,11 +1053,10 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
                     }
                 }
             }
-            let w = step(val, cand);
-            if (w > 0) {
-                tier = Math.max(tier, Math.min(T_ADVANCED, TIER_OF[w])); sub = w;
-                hu[0] |= 1 << w;
-                if (w == W_UNIQUERECT) hu[0] |= 1 << urBit(UR_TYPE[0]);
+            if (step(val, cand, true, st)) {
+                tier = Math.max(tier, TIER_OF[st.code]); sub = st.code;
+                hu[0] |= 1 << st.code;
+                if (st.ur > 0) hu[0] |= 1 << urBit(st.ur);
                 continue;
             }
             break;
@@ -1113,24 +1071,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         return [best, solution[best], T_HARDER, -1, sub];
     }
 
-    // ---------------------------------------------------------------- generator
-
-    const TARGET = [45, 36, 30, 26, 0, 0, 0];
-
-    /**
-     * Level ladder (levels 0..4): the key technique (tier level+1) must be needed, but only a few times,
-     * and the number of givens stays in a band, so a level is not «easy but endless».
-     */
-    const CLUES_LO = [42, 36, 31, 27, 24], CLUES_HI = [46, 40, 35, 31, 28];
-    const STEPS_MAX = [99, 3, 3, 3, 3];
-
-    function subsetsN(val, cand, size) {
-        // naked subsets first (pair 3,0, triple 3,6), hidden ones only when there are none (3,4 and 4,0)
-        if (subsetsPass(val, cand, size, false)) { VARIANT_SE[0] = size == 2 ? 30 : 36; return true; }
-        if (subsetsPass(val, cand, size, true)) { VARIANT_SE[0] = size == 2 ? 34 : 40; return true; }
-        return false;
-    }
-
+    /** Naked or hidden subsets of exactly that size (n=2: pairs, n=3: triples). */
     function subsetsPass(val, cand, size, hidden) {
         for (let u = 0; u < 27; u++) {
             let changed = false;
@@ -1171,38 +1112,65 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
 
 
     // ------------------------------------------------------------ grade and SE rating (as Sudoku.java)
-    function grade(puzzle) {
-        var val = puzzle.slice(), cand = new Array(81);
-        for (var c = 0; c < 81; c++) cand[c] = val[c] === 0 ? 0x3FE : 0;
-        for (c = 0; c < 81; c++) if (val[c] !== 0) for (var p of PEERS[c]) cand[p] &= ~(1 << val[c]);
-        var level = T_HIDDEN;
+    var SE_BEYOND = 70, SE_GRANDMASTER = 80, SE_EXTREME = 120, BOUND = 1000;
+    var B0 = 82.5, K1 = 2.7, KT = 0.22, B2 = 4.5;
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+
+    /** Everything one solve found out (as Sudoku.Rating). */
+    function newRating(millis) {
+        return {se: 0, tier: T_HIDDEN, state: 0, steps: new Array(9).fill(0), n1: 0, n2: 0, t1: 0, logicSe: 12,
+                deadline: millis > 0 ? Date.now() + millis : 0, bmax: 0};
+    }
+    function late(R) { return R.deadline > 0 && Date.now() > R.deadline; }
+    /** Key moves: steps of the puzzle's own tier; «Гроссмейстер»: 1st-degree assumptions + 1000 · 2nd-degree. */
+    function keySteps(R) { return R.tier >= T_HARDER ? R.n1 + 1000 * R.n2 : R.steps[R.tier]; }
+
+    /** The one solve (as Sudoku.walk): rate = false stops where logic ends. */
+    function walk(puzzle, rate, millis) {
+        var R = newRating(millis);
+        var val = puzzle.slice(), cand = candidates(val), st = {code: 0, se: 0, ur: 0};
         while (true) {
-            if (contradiction(val, cand)) return T_INVALID;
-            var empty = 0;
-            for (c = 0; c < 81; c++) if (val[c] === 0) empty++;
-            if (empty === 0) return level;
-            if (hiddenSingles(val, cand) > 0) continue;
-            if (nakedSingles(val, cand) > 0) { level = Math.max(level, T_NAKED); continue; }
-            var w = step(val, cand);
-            if (w > 0) { level = Math.max(level, TIER_OF[w]); continue; }
-            return T_HARDER;
+            if (contradiction(val, cand)) { R.state = 2; break; }
+            var empty = false;
+            for (var c = 0; c < 81; c++) if (val[c] === 0) { empty = true; break; }
+            if (!empty) { R.state = 0; break; }
+            var se = 12, n = hiddenSinglesIn(val, cand, 18, 27);
+            if (n === 0) { n = hiddenSingles(val, cand); se = 15; }
+            if (n > 0) { R.logicSe = Math.max(R.logicSe, se); continue; }
+            if (nakedSingles(val, cand) > 0) { R.tier = Math.max(R.tier, T_NAKED); R.logicSe = Math.max(R.logicSe, 23); continue; }
+            if (step(val, cand, true, st)) {
+                var t = TIER_OF[st.code];
+                R.steps[t]++; R.tier = Math.max(R.tier, t); R.logicSe = Math.max(R.logicSe, st.se);
+                continue;
+            }
+            R.tier = T_HARDER;
+            if (!rate) { R.state = 1; break; }
+            var done = false;
+            for (var depth = 0; depth < 3 && !done; depth++) {
+                if (late(R)) { R.se = BOUND + Math.max(beyond(R), SE_BEYOND); return R; }
+                R.bmax = 0;
+                if (assume(val, cand, depth, R)) {
+                    done = true;
+                    if (depth < 2) { R.n1++; R.t1 = Math.max(R.t1, R.bmax); } else R.n2++;
+                }
+            }
+            if (late(R)) { R.se = BOUND + Math.max(beyond(R), SE_BEYOND); return R; }
+            if (!done) { R.se = SE_EXTREME; return R; }
         }
+        if (R.state === 2) R.tier = T_INVALID;
+        R.se = beyond(R);
+        return R;
     }
 
-    var SE_BEYOND = 70, SE_EXTREME = 120, BOUND = 1000;
-    var B0 = 82.1, K1 = 2.64, KT = 0.28, B2 = 4.5;
-    var deadline = 0, lastLen = 0, lastSteps = 0, bmax = 0;
-    function late() { return deadline > 0 && Date.now() > deadline; }
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
-    /** As Sudoku.java beyond(): n = [1st degree, 2nd degree, hardest technique inside the 1st, chains]. */
-    function beyond(r, n) {
-        if (n[0] === 0 && n[1] === 0) return r;
-        var v = B0 + K1 * Math.log(Math.max(1, n[0])) + KT * n[2];
-        if (n[1] > 0) v += B2;
-        return Math.max(r, clamp(v, SE_BEYOND, SE_EXTREME - 1));
+    /** As Sudoku.java beyond(): B0 + K1·ln(n₁) + KT·T₁ (+ B2 with the 2nd degree), 8,0 … 11,9. */
+    function beyond(R) {
+        if (R.n1 === 0 && R.n2 === 0) return R.logicSe;
+        var v = B0 + K1 * Math.log(Math.max(1, R.n1)) + KT * R.t1;
+        if (R.n2 > 0) v += B2;
+        return Math.max(R.logicSe, clamp(v, SE_GRANDMASTER, SE_EXTREME - 1));
     }
-    function breaks(val, cand, depth) {
-        var steps = 0;
+    function breaks(val, cand, depth, R) {
+        var steps = 0, st = {code: 0, se: 0, ur: 0};
         while (true) {
             if (contradiction(val, cand)) return steps;
             var n = hiddenSingles(val, cand);
@@ -1210,22 +1178,21 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             if (n > 0) { steps += n; continue; }
             if (depth === 0) return -1;
             steps++;
-            var w = step(val, cand, false);
-            if (w > 0) { bmax = Math.max(bmax, stepSe(w)); continue; }
-            if (depth === 2 && assume(val, cand, 0)) continue;
+            if (step(val, cand, false, st)) { R.bmax = Math.max(R.bmax, st.se); continue; }
+            if (depth === 2 && assume(val, cand, 0, R)) continue;
             return -1;
         }
     }
-    function assume(val, cand, depth) {
+    function assume(val, cand, depth, R) {
         var bestC = -1, bestD = 0, best = Infinity;
         for (var c = 0; c < 81; c++) {
             if (val[c] !== 0) continue;
             for (var d = 1; d <= 9; d++) {
                 if ((cand[c] & (1 << d)) === 0) continue;
-                if (late()) return false;
+                if (late(R)) return false;
                 var v = val.slice(), k = cand.slice();
                 place(v, k, c, d);
-                var len = breaks(v, k, depth);
+                var len = breaks(v, k, depth, R);
                 if (len >= 0 && len < best) { best = len; bestC = c; bestD = d; }
                 if (depth > 0 && bestC >= 0) break;
             }
@@ -1233,50 +1200,19 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
         }
         if (bestC < 0) return false;
         cand[bestC] &= ~(1 << bestD);
-        lastLen = best;
         return true;
     }
-    /** SE in tenths (BOUND + the rating so far — out of time); lastSteps — key moves (a + 1000·b with the 2nd degree). */
+
+    /** Level tier by logic alone: T_HARDER if not enough, T_INVALID if it breaks. */
+    function grade(puzzle) { return walk(puzzle, false, 0).tier; }
+
+    var lastSteps = 0;
+    /** SE in tenths (BOUND + the rating so far — out of time); then steps() — key moves (a + 1000·b with the 2nd degree). */
     function seRating(puzzle, millis) {
-        deadline = millis > 0 ? Date.now() + millis : 0;
-        try { return seRun(puzzle); } finally { deadline = 0; }
-    }
-    function seRun(puzzle) {
-        var steps = new Array(10).fill(0); steps[9] = T_HIDDEN;
-        var val = puzzle.slice(), cand = new Array(81);
-        for (var c = 0; c < 81; c++) cand[c] = val[c] === 0 ? 0x3FE : 0;
-        for (c = 0; c < 81; c++) if (val[c] !== 0) for (var p of PEERS[c]) cand[p] &= ~(1 << val[c]);
-        var r = 12, n = [0, 0, 0, 0];
-        var fin = function (x) { lastSteps = steps[9] === T_HARDER ? n[3] + n[0] + 1000 * n[1] : steps[steps[9]]; return x; };
-        while (true) {
-            if (contradiction(val, cand)) return fin(beyond(r, n));
-            var empty = false;
-            for (c = 0; c < 81; c++) if (val[c] === 0) { empty = true; break; }
-            if (!empty) return fin(beyond(r, n));
-            if (hiddenSinglesIn(val, cand, 18, 27) > 0) { r = Math.max(r, 12); continue; }
-            if (hiddenSingles(val, cand) > 0) { r = Math.max(r, 15); continue; }
-            if (nakedSingles(val, cand) > 0) { r = Math.max(r, 23); steps[9] = Math.max(steps[9], T_NAKED); continue; }
-            var w = step(val, cand);
-            if (w > 0) { r = Math.max(r, stepSe(w)); steps[TIER_OF[w]]++; steps[9] = Math.max(steps[9], TIER_OF[w]); if (w === W_AIC) n[3]++; continue; }
-            var done = false;
-            for (var depth = 0; depth < 3 && !done; depth++) {
-                if (late()) return fin(BOUND + Math.max(beyond(r, n), SE_BEYOND));
-                bmax = 0;
-                if (assume(val, cand, depth)) {
-                    done = true;
-                    if (depth < 2) { n[0]++; n[2] = Math.max(n[2], bmax); } else n[1]++;
-                }
-            }
-            if (late()) return fin(BOUND + Math.max(beyond(r, n), SE_BEYOND));
-            if (!done) return fin(SE_EXTREME);
-            steps[T_HARDER]++;
-            steps[9] = T_HARDER;
-        }
+        var R = walk(puzzle, true, millis);
+        lastSteps = keySteps(R);
+        return R.se;
     }
 
-    /**
-     * Steps tried for a training on technique k, in order: everything simpler first, so the task
-     * really needs k. Rare techniques get a shorter list, or the search would take too long:
-     * the finned X-wing only has to beat the basic steps and the plain X-wing, BUG+1 nothing.
-     */window.SX = {hint: hint, grade: grade, seRating: seRating, steps: function () { return lastSteps; }, LEVELS: 7, countSolutions: countSolutions, used: function () { return HINT_USED[0]; }, T_HIDDEN: T_HIDDEN, T_NAKED: T_NAKED, T_HARDER: T_HARDER, PEERS: PEERS, UNITS: UNITS, CELL_UNITS: CELL_UNITS, isPeer: isPeer};
+window.SX = {hint: hint, grade: grade, seRating: seRating, steps: function () { return lastSteps; }, LEVELS: 7, countSolutions: countSolutions, T_HIDDEN: T_HIDDEN, T_NAKED: T_NAKED, T_HARDER: T_HARDER, PEERS: PEERS, UNITS: UNITS, CELL_UNITS: CELL_UNITS, isPeer: isPeer};
 })();
