@@ -249,7 +249,8 @@ function restore(s) { var o = JSON.parse(s); g.value = o.v; g.corner = o.k; g.ce
 function pushUndo() { if (batch) { if (batchPushed) return; batchPushed = true; } undoS.push(snap()); if (undoS.length > 300) undoS.shift(); redoS = []; }
 function placedCount(d) { var n = 0; for (var i = 0; i < 81; i++) if (g.value[i] === d && !g.wrong[i]) n++; return n; }
 function hasColor(c, k) { return g.color[c].indexOf(String(k)) >= 0; }
-function toggleColor(c, k) { if (g.status || g.value[c]) return false; pushUndo(); var s = g.color[c], ks = String(k);
+function toggleColor(c, k) { if (g.status) return false;   // any cell, a digit in it too
+  pushUndo(); var s = g.color[c], ks = String(k);
   g.color[c] = s.indexOf(ks) >= 0 ? s.replace(ks, '') : s + ks; return true; }
 function toggleCorner(c, d) { if (g.status || g.value[c]) return false; pushUndo(); var s = g.corner[c], ds = String(d);
   g.corner[c] = s.indexOf(ds) >= 0 ? s.replace(ds, '') : s + ds; return true; }
@@ -261,7 +262,8 @@ function moveNotes(c, toCenter) {
   return true;
 }
 function canAnswer(c) { return !g.status && !isGiven(c) && (g.value[c] === 0 || g.wrong[c]); }
-function place(c, d) { g.value[c] = d; g.wrong[c] = false; g.corner[c] = ''; g.center[c] = 0; g.color[c] = '';
+function place(c, d) { g.value[c] = d; g.wrong[c] = false; g.corner[c] = ''; g.center[c] = 0;   // the colour stays
+ 
   for (var i = 0; i < 20; i++) { var p = SX.PEERS[c][i]; g.corner[p] = g.corner[p].replace(String(d), ''); g.center[p] &= ~(1 << d); } }
 function checkDone() { for (var i = 0; i < 81; i++) if (g.value[i] !== g.solution[i] || g.wrong[i]) return; g.status = 1; undoS = []; redoS = []; }
 function answer(c, d) {
@@ -274,7 +276,8 @@ function erase(c) {
   if (g.status) return false;
   if (g.wrong[c]) { pushUndo(); g.value[c] = 0; g.wrong[c] = false; return true; }
   var notes = g.value[c] === 0 && (g.corner[c] || g.center[c]);
-  if (g.value[c] || (!notes && !g.color[c])) return false;
+  if (g.value[c]) { if (!g.color[c]) return false; pushUndo(); g.color[c] = ''; return true; }   // a digit keeps, its colour goes
+  if (!notes && !g.color[c]) return false;
   pushUndo(); g.corner[c] = ''; g.center[c] = 0; g.color[c] = ''; return true;
 }
 function toggleLink(a, b, k) {
@@ -584,9 +587,9 @@ cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 var brushAdd = -1, brushAny = false, brushMistake = false, brushOk = -1;
 function brushStart() { batch = true; batchPushed = false; brushAdd = -1; brushAny = false; brushMistake = false; brushOk = -1; }
 function brushCell(c) {
-  var d = ui.qd; if (g.status || c < 0 || !d || isGiven(c)) return;
+  var d = ui.qd; if (g.status || c < 0 || !d || (ui.mode !== MODE_COLOR && isGiven(c))) return;
   if (ui.mode === MODE_COLOR) {
-    if (d > 3 || g.value[c]) return; var has = hasColor(c, d); if (brushAdd < 0) brushAdd = has ? 0 : 1;
+    if (d > 3) return; var has = hasColor(c, d); if (brushAdd < 0) brushAdd = has ? 0 : 1;
     if (has !== (brushAdd === 1)) brushAny = toggleColor(c, d) || brushAny;
   } else if (ui.mode !== MODE_ANSWER) {
     if (g.value[c]) return; var hn = hasNote(c, d, ui.mode); if (brushAdd < 0) brushAdd = hn ? 0 : 1;
@@ -607,7 +610,7 @@ function brushEnd() {
 }
 
 // ------------------------------------------------------------------ input (as MainActivity)
-function cellTakesInput(c) { if (c < 0 || g.status || isGiven(c)) return false; return ui.mode === MODE_ANSWER ? canAnswer(c) : g.value[c] === 0; }
+function cellTakesInput(c) { if (c < 0 || g.status) return false; if (ui.mode === MODE_COLOR) return true; if (isGiven(c)) return false; return ui.mode === MODE_ANSWER ? canAnswer(c) : g.value[c] === 0; }
 function noteHas(c, d) { return ui.mode === MODE_CORNER ? g.corner[c].indexOf(String(d)) >= 0 : ui.mode === MODE_CENTER && (g.center[c] & (1 << d)) !== 0; }
 function hasNote(c, d, m) { return m === MODE_CORNER ? g.corner[c].indexOf(String(d)) >= 0 : (g.center[c] & (1 << d)) !== 0; }
 function onCellSelected() { ui.peek = 0; refreshControls(); }
@@ -685,7 +688,7 @@ function multiInput(d) {
   if (g.status) return; var cs2 = multiCells(); if (!cs2.length) return;
   var changed = false, mistake = false, lastOk = -1; batch = true; batchPushed = false;
   if (ui.mode === MODE_COLOR) {
-    if (d <= 3) { var all = cs2.every(function (c) { return g.value[c] || hasColor(c, d); }); cs2.forEach(function (c) { if (!g.value[c] && hasColor(c, d) === all) changed = toggleColor(c, d) || changed; }); }
+    if (d <= 3) { var all = cs2.every(function (c) { return hasColor(c, d); }); cs2.forEach(function (c) { if (hasColor(c, d) === all) changed = toggleColor(c, d) || changed; }); }
   } else if (ui.mode !== MODE_ANSWER) {
     var empties = cs2.filter(function (c) { return !g.value[c]; }), allN = empties.length > 0 && empties.every(function (c) { return hasNote(c, d, ui.mode); });
     if (empties.length && (allN || placedCount(d) < 9)) empties.forEach(function (c) { if (hasNote(c, d, ui.mode) === allN) changed = (ui.mode === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d)) || changed; });
