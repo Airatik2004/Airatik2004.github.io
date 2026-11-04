@@ -547,6 +547,8 @@ cv.addEventListener('pointermove', function (e) {
   if (ui.quick && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
   if (ui.quick) {
     if (peeked || holdCell < 0 || c === lastCell) return;
+    // «Ответ»: answers go in only by taps — a swipe neither puts the digit nor selects cells
+    if (ui.mode === MODE_ANSWER) { moved = true; clearTimeout(holdTimer); lastCell = c; return; }
     if (!moved) {
       moved = true; clearTimeout(holdTimer);
       if (ui.qd) { brushing = true; peekCell = -1; brushStart(); brushCell(holdCell); }
@@ -726,6 +728,8 @@ function refresh() { refreshControls(); draw(); }
 
 // ------------------------------------------------------------------ the controls (as refreshControls)
 function refreshControls() {
+  // «Ответ» in quick input: a selection made in another mode is dropped
+  if (ui.quick && ui.mode === MODE_ANSWER && !ui.eraser && hasSel()) clearSel();
   var sc = ui.sel, mc = ui.quick && hasSel() ? multiCells() : null;
   for (var d = 1; d <= 9; d++) {
     var k = keys[d], left = 9 - placedCount(d), raised = false;
