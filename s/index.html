@@ -516,6 +516,7 @@ function linkIcon(c2, x, y, s, color) {
 
 // ------------------------------------------------------------------ touch on the board (finger, or the left mouse button)
 var down = false, peekCell = -1, holdCell = -1, lastCell = -1, moved = false, brushing = false, peeked = false, holdTimer = null;
+var sliding = false;   // «Ответ» in quick input, no digit picked: a swipe moves the selected cell along
 function cellAt(e) { var r = cv.getBoundingClientRect(), col = Math.floor((e.clientX - r.left - ox) / cs), row = Math.floor((e.clientY - r.top - oy) / cs);
   return col >= 0 && col < 9 && row >= 0 && row < 9 ? row * 9 + col : -1; }
 cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -527,7 +528,7 @@ cv.addEventListener('pointerdown', function (e) {
   if (ui.quick) {
     // a tap acts on lifting the finger; a swipe with a digit picked puts it into every cell it passes, without one — selects;
     // holding a cell without moving only lights it (its houses and the same digits)
-    clearTimeout(holdTimer); holdCell = c; lastCell = c; moved = false; brushing = false; peeked = false;
+    clearTimeout(holdTimer); holdCell = c; lastCell = c; moved = false; brushing = false; peeked = false; sliding = false;
     if (c >= 0) holdTimer = setTimeout(function () { if (moved || holdCell < 0) return; peeked = true; peekCell = holdCell; ui.peek = 0; vib(20); refresh(); }, 400);
     return;
   }
@@ -547,8 +548,13 @@ cv.addEventListener('pointermove', function (e) {
   if (ui.quick && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
   if (ui.quick) {
     if (peeked || holdCell < 0 || c === lastCell) return;
-    // «Ответ»: answers go in only by taps — a swipe neither puts the digit nor selects cells
-    if (ui.mode === MODE_ANSWER) { moved = true; clearTimeout(holdTimer); lastCell = c; return; }
+    // «Ответ»: answers go in only by taps — a swipe never puts the digit; without a digit picked it moves the
+    // selection along (one cell, with its row, column and box), chosen on lifting the finger
+    if (ui.mode === MODE_ANSWER) {
+      moved = true; clearTimeout(holdTimer); lastCell = c;
+      if (!ui.qd) { sliding = true; clearSel(); peekCell = -1; ui.sel = c; draw(); }
+      return;
+    }
     if (!moved) {
       moved = true; clearTimeout(holdTimer);
       if (ui.qd) { brushing = true; peekCell = -1; brushStart(); brushCell(holdCell); }
@@ -573,6 +579,10 @@ function up(e) {
   }
   if (ui.quick && !ui.eraser) {
     if (brushing) { brushing = false; brushEnd(); }
+    else if (sliding) {
+      sliding = false;   // the cell the swipe ended on: chosen as if tapped
+      if (e.type === 'pointerup' && lastCell >= 0) { ui.sel = lastCell; onCellSelected(); onCellTapped(lastCell); }
+    }
     else if (!moved && !peeked && holdCell >= 0 && e.type === 'pointerup') {
       // a tap: as before — selects the cell / puts the picked digit there / picks a digit from the board
       clearSel(); peekCell = -1;
