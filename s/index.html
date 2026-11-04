@@ -587,11 +587,11 @@ cv.addEventListener('pointermove', function (e) {
 // «Связь» in «Быстрый»: the cell the chain being drawn ends in (the next tap is joined to it), -1 — none
 var linkTail = -1;
 /** A tap on a cell in «Связь» (as linkTap in the game). */
-function linkTap(c) {
+function linkTap(c, swiped) {
   if (g.status || c < 0) return; peekCell = -1; var k = ui.drawColor;
   if (!ui.quick) {
     if (k > 0) { ui.sel = c; if (toggleDot(c, k)) { vib(10); afterChange(); } else refresh(); }
-    else { ui.sel = ui.sel === c ? -1 : c; refresh(); }
+    else { ui.sel = ui.sel === c && !swiped ? -1 : c; refresh(); }
     return;
   }
   if (k === 0) { var i = linkSel.indexOf(c); if (i >= 0) { linkSel.splice(i, 1); ui.msel[c] = false; } else { linkSel.push(c); ui.msel[c] = true; } ui.sel = -1; refresh(); return; }
@@ -625,7 +625,7 @@ function up(e) {
   clearTimeout(holdTimer);
   if (!down) return; down = false; lastErased = -1;
   if (drawing() && !ui.eraser) {
-    if (holdCell >= 0 && e.type === 'pointerup') { if (!moved) linkTap(holdCell); else { ui.sel = lastCell; onCellSelected(); draw(); } }
+    if (holdCell >= 0 && e.type === 'pointerup') linkTap(moved ? lastCell : holdCell, moved);   // the cell where the finger is lifted acts as tapped
     holdCell = -1;
     return;
   }
@@ -725,15 +725,17 @@ function colorKey(k) {
 }
 function setMode(m) {
   if (!started || paused) return; ui.peek = 0;
-  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; ui.mode = m; refresh(); return; }
+  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; var w0 = drawing(); ui.mode = m; if (w0 !== drawing()) leaveLinks(); refresh(); return; }
   // the same mode again: «Цвет» ↔ «Связь»; «Ответ» → the notes mode used last; «Угол» ↔ «Центр»
-  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; clearSel(); linkTail = -1; refresh(); return; }
-  if (drawing() && m !== ui.mode) { clearSel(); linkTail = -1; }   // cells picked for links, the chain
+  if (m === ui.mode && m === MODE_COLOR) { ui.link = !ui.link; ui.qd = 0; ui.chosen = false; leaveLinks(); refresh(); return; }
   if (m === ui.mode) m = m === MODE_ANSWER ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
   if (m <= MODE_CENTER) ui.lastNote = m;
   if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
-  ui.mode = m; refresh();
+  var was = drawing(); ui.mode = m; if (was !== drawing()) leaveLinks();
+  refresh();
 }
+/** Into or out of «Связь»: no selection carries over, the colour of links is unpicked, the chain ends. */
+function leaveLinks() { clearSel(); ui.drawColor = 0; linkTail = -1; }
 function speedTap() {
   if (!started || paused || g.status) return; ui.eraser = false; clearSel();
   // what is lit on the board (a held key or cell) stays lit
@@ -779,7 +781,7 @@ function eraserTap() {
   if (ui.quick) {
     // a cell chosen first (then «Ластик»): it is cleaned right away, the eraser stays picked
     var sc = ui.chosen ? ui.sel : -1;
-    ui.eraser = true; ui.qd = 0; ui.chosen = false; ui.peek = 0;
+    ui.eraser = true; ui.qd = 0; ui.chosen = false; ui.peek = 0; if (drawing()) leaveLinks();
     if (sc >= 0 && eraseFull(sc)) afterChange(); else refresh();
     return;
   }
