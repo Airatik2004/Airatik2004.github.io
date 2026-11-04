@@ -97,7 +97,8 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
     const W_XWING = 1, W_SKYSCRAPER = 2, W_SWORDFISH = 3, W_XYWING = 4, W_XYZWING = 5, W_WWING = 6,
             W_EMPTYRECT = 7, W_UNIQUERECT = 8, W_XCHAIN = 9, W_MWING = 10, W_SWING = 11, W_XYCHAIN = 12, W_FINNED = 13,
             W_BUG = 14, W_LOCKED = 15, W_PAIRS = 16, W_TRIPLES = 17, W_HIDDEN = 18, W_NAKED = 19, W_KITE = 20,
-            W_FINNEDSWORD = 21, W_RING = 22, W_AIC = 23;
+            W_FINNEDSWORD = 21, W_RING = 22, W_AIC = 23,
+            W_DLOCKED = 29, W_DPAIR = 30, W_DTRIPLE = 31, W_NQUAD = 32, W_JELLYFISH = 33, W_HQUAD = 34;
 
     /** Bit of a unique rectangle of type 1–4 (beside W_UNIQUERECT itself) in the technique masks. */
     function urBit(type) { return 24 + type; }
@@ -107,7 +108,9 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             T_MEDIUM, T_EXPERT, T_MEDIUM, T_HARD, T_HARD, T_MASTER,
             T_EXPERT, T_HARD, T_EXPERT, T_MASTER, T_MASTER, T_MASTER,
             T_EXPERT, T_EXPERT, T_NAKED, T_MEDIUM, T_MEDIUM, T_HIDDEN, T_NAKED,
-            T_EXPERT, T_EXPERT, T_MASTER, T_MASTER];
+            T_EXPERT, T_EXPERT, T_MASTER, T_MASTER,
+            0, 0, 0, 0, 0,
+            T_NAKED, T_NAKED, T_NAKED, T_EXPERT, T_EXPERT, T_EXPERT];
 
     /** What one elimination step found: {code, se, ur}. */
     function found(st, code, se) { st.code = code; st.se = se; st.ur = 0; return true; }
@@ -124,53 +127,180 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
     }
 
     /** The simplest elimination technique that works (by levels, inside a level by SE); chains = false: no ring and AIC. */
-    function step(val, cand, chains, st) {
-        for (let a = 0; a < ATOMS; a++) {
+    function step(val, cand, chains, st, from, to) {
+        if (from === undefined) { from = 0; to = ATOMS; }
+        for (let a = from; a < to; a++) {
             let se = atom(val, cand, a);
             if (se > 0) { found(st, ATOM_CODE[a], se); st.ur = ATOM_UR[a]; return true; }
         }
-        return chains && altChain(val, cand, st);
+        return chains && to == ATOMS && altChain(val, cand, st);
     }
+    /** Ladder steps before naked singles, as in Sudoku Explainer: direct locked candidates and hidden pair. */
+    const BEFORE_NAKED = 2;
 
-    const ATOMS = 24;
+    const ATOMS = 30;
     const ATOM_CODE = [
-            W_LOCKED,
+            W_DLOCKED, W_DPAIR, W_DTRIPLE, W_LOCKED,
             W_PAIRS, W_XWING, W_PAIRS, W_TRIPLES, W_SWORDFISH, W_TRIPLES,
             W_XYWING, W_XYZWING, W_UNIQUERECT, W_UNIQUERECT, W_UNIQUERECT, W_UNIQUERECT,
-            W_BUG, W_SKYSCRAPER, W_KITE, W_EMPTYRECT, W_FINNED, W_FINNEDSWORD, W_XCHAIN,
+            W_NQUAD, W_JELLYFISH, W_HQUAD, W_BUG,
+            W_SKYSCRAPER, W_KITE, W_EMPTYRECT, W_FINNED, W_FINNEDSWORD, W_XCHAIN,
             W_WWING, W_MWING, W_SWING, W_XYCHAIN];
-    const ATOM_UR = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const ATOM_UR = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     /** Step a of the ladder: its SE (tenths) if it removed something, 0 if not. */
     function atom(val, cand, a) {
         let v;
         switch (a) {
-            case 0: return locked(cand);
-            case 1: return subsetsPass(val, cand, 2, false) ? 30 : 0;
-            case 2: return fish(val, cand, 2) ? 32 : 0;
-            case 3: return subsetsPass(val, cand, 2, true) ? 34 : 0;
-            case 4: return subsetsPass(val, cand, 3, false) ? 36 : 0;
-            case 5: return fish(val, cand, 3) ? 38 : 0;
-            case 6: return subsetsPass(val, cand, 3, true) ? 40 : 0;
-            case 7: return xyWing(val, cand) ? 42 : 0;
-            case 8: return xyzWing(val, cand) ? 44 : 0;
-            case 9: return uniqueRectangle(val, cand) ? 45 : 0;
-            case 10: return urType(val, cand, 4);
-            case 11: return urType(val, cand, 2);
-            case 12: return urType(val, cand, 3);
-            case 13: return bugPlusOne(val, cand) ? 56 : 0;
-            case 14: return skyscraper(val, cand) ? chainSe(false, false, 4) : 0;
-            case 15: return kite(val, cand) ? chainSe(false, false, 4) : 0;
-            case 16: return emptyRectangle(val, cand) ? chainSe(false, false, 6) : 0;
-            case 17: return finnedFish(val, cand, 2) ? chainSe(false, false, 6) : 0;
-            case 18: return finnedFish(val, cand, 3) ? chainSe(false, false, 8) : 0;
-            case 19: return (v = xChain(val, cand)) > 0 ? chainSe(false, false, v + 1) : 0;
-            case 20: return wWing(val, cand) ? chainSe(false, true, 6) : 0;
-            case 21: return wing3(val, cand, 1) ? chainSe(false, true, 6) : 0;
-            case 22: return wing3(val, cand, 2) ? chainSe(false, true, 6) : 0;
-            case 23: return (v = xyChain(val, cand)) > 0 ? chainSe(false, false, 2 * v) : 0;
+            case 0: return directLocked(cand);
+            case 1: return directHidden(val, cand, 2) ? 20 : 0;
+            case 2: return directHidden(val, cand, 3) ? 25 : 0;
+            case 3: return locked(cand);
+            case 4: return subsetsPass(val, cand, 2, false) ? 30 : 0;
+            case 5: return fish(val, cand, 2) ? 32 : 0;
+            case 6: return subsetsPass(val, cand, 2, true) ? 34 : 0;
+            case 7: return subsetsPass(val, cand, 3, false) ? 36 : 0;
+            case 8: return fish(val, cand, 3) ? 38 : 0;
+            case 9: return subsetsPass(val, cand, 3, true) ? 40 : 0;
+            case 10: return xyWing(val, cand) ? 42 : 0;
+            case 11: return xyzWing(val, cand) ? 44 : 0;
+            case 12: return uniqueRectangle(val, cand) ? 45 : 0;
+            case 13: return urType(val, cand, 4);
+            case 14: return urType(val, cand, 2);
+            case 15: return urType(val, cand, 3);
+            case 16: return quads(val, cand, false) ? 50 : 0;
+            case 17: return jellyfish(val, cand) ? 52 : 0;
+            case 18: return quads(val, cand, true) ? 54 : 0;
+            case 19: return bugPlusOne(val, cand) ? 56 : 0;
+            case 20: return skyscraper(val, cand) ? chainSe(false, false, 4) : 0;
+            case 21: return kite(val, cand) ? chainSe(false, false, 4) : 0;
+            case 22: return emptyRectangle(val, cand) ? chainSe(false, false, 6) : 0;
+            case 23: return finnedFish(val, cand, 2) ? chainSe(false, false, 6) : 0;
+            case 24: return finnedFish(val, cand, 3) ? chainSe(false, false, 8) : 0;
+            case 25: return (v = xChain(val, cand)) > 0 ? chainSe(false, false, v + 1) : 0;
+            case 26: return wWing(val, cand) ? chainSe(false, true, 6) : 0;
+            case 27: return wing3(val, cand, 1) ? chainSe(false, true, 6) : 0;
+            case 28: return wing3(val, cand, 2) ? chainSe(false, true, 6) : 0;
+            case 29: return (v = xyChain(val, cand)) > 0 ? chainSe(false, false, 2 * v) : 0;
         }
         return 0;
+    }
+
+    /** Direct pointing 1,7 / claiming 1,9 (see Sudoku.java). */
+    function directLocked(cand) {
+        for (let kind = 0; kind < 2; kind++) {
+            let pointing = kind == 0;
+            for (let u = pointing ? 18 : 0; u < (pointing ? 27 : 18); u++) {
+                for (let d = 1; d <= 9; d++) {
+                    let bit = 1 << d, n = 0;
+                    let cells = new Array(9).fill(0);
+                    for (const c of UNITS[u]) if ((cand[c] & bit) != 0) cells[n++] = c;
+                    if (n < 2) continue;
+                    for (let k = 0; k < 3; k++) {
+                        let other = CELL_UNITS[cells[0]][k];
+                        if (other == u) continue;
+                        let all = true;
+                        for (let i = 1; i < n; i++) if (CELL_UNITS[cells[i]][k] != other) { all = false; break; }
+                        if (!all) continue;
+                        let lo = u < 9 ? 0 : u < 18 ? 9 : 18;
+                        let ok = other < 9 ? 0 : other < 18 ? 1 : 2, uk = u < 9 ? 0 : u < 18 ? 1 : 2;
+                        for (let u3 = lo; u3 < lo + 9; u3++) {
+                            if (u3 == u) continue;
+                            let total = 0, outside = 0, crosses = false;
+                            for (const c of UNITS[u3]) {
+                                let inOther = CELL_UNITS[c][ok] == other;
+                                if (inOther) crosses = true;
+                                if ((cand[c] & bit) == 0) continue;
+                                total++;
+                                if (!inOther) outside++;
+                            }
+                            if (!crosses || total < 2 || outside != 1) continue;
+                            for (const c of UNITS[other]) if (CELL_UNITS[c][uk] != u) cand[c] &= ~bit;
+                            return pointing ? 17 : 19;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    /** Direct hidden pair 2,0 / triple 2,5 (see Sudoku.java). */
+    function directHidden(val, cand, size) {
+        for (let u = 0; u < 27; u++) {
+            let e = new Array(9).fill(0), m = 0;
+            for (const c of UNITS[u]) if (val[c] == 0) e[m++] = c;
+            if (m <= size) continue;
+            let pos = new Array(10).fill(0);
+            for (let d = 1; d <= 9; d++) for (let i = 0; i < m; i++) if ((cand[e[i]] & (1 << d)) != 0) pos[d] |= 1 << i;
+            for (let ds = 0; ds < 1024; ds += 2) {
+                if (bitCount(ds) != size) continue;
+                let where = 0, ok = true;
+                for (let d = 1; d <= 9 && ok; d++) if ((ds & (1 << d)) != 0) { if (pos[d] == 0) ok = false; where |= pos[d]; }
+                if (!ok || bitCount(where) != size) continue;
+                for (let w = 1; w <= 9; w++) {
+                    if ((ds & (1 << w)) != 0 || bitCount(pos[w]) < 2 || bitCount(pos[w] & ~where) != 1) continue;
+                    restrict(cand, e, m, where, ds);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Naked quad 5,0 / hidden quad 5,4 (only in a house with all 9 cells empty), see Sudoku.java. */
+    function quads(val, cand, hidden) {
+        for (let u = 0; u < 27; u++) {
+            let e = new Array(9).fill(0), m = 0;
+            for (const c of UNITS[u]) if (val[c] == 0) e[m++] = c;
+            if (hidden ? m < 9 : m < 5) continue;
+            let changed = false;
+            if (!hidden) {
+                for (let cs = 0; cs < (1 << m); cs++) {
+                    if (bitCount(cs) != 4) continue;
+                    let un = 0;
+                    for (let i = 0; i < m; i++) if ((cs & (1 << i)) != 0) un |= cand[e[i]];
+                    if (bitCount(un) != 4) continue;
+                    for (let i = 0; i < m; i++) if ((cs & (1 << i)) == 0 && (cand[e[i]] & un) != 0) { cand[e[i]] &= ~un; changed = true; }
+                }
+            } else {
+                let pos = new Array(10).fill(0);
+                for (let d = 1; d <= 9; d++) for (let i = 0; i < m; i++) if ((cand[e[i]] & (1 << d)) != 0) pos[d] |= 1 << i;
+                for (let ds = 0; ds < 1024; ds += 2) {
+                    if (bitCount(ds) != 4) continue;
+                    let where = 0, ok = true;
+                    for (let d = 1; d <= 9 && ok; d++) if ((ds & (1 << d)) != 0) { if (pos[d] == 0) ok = false; where |= pos[d]; }
+                    if (ok && bitCount(where) == 4) changed = restrict(cand, e, m, where, ds) || changed;
+                }
+            }
+            if (changed) return true;
+        }
+        return false;
+    }
+
+    /** Jellyfish 5,2: a fish of four lines. */
+    function jellyfish(val, cand) {
+        for (let d = 1; d <= 9; d++) {
+            let bit = 1 << d;
+            for (let orient = 0; orient < 2; orient++) {
+                let m = new Array(9).fill(0);
+                for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+                    let c = orient == 0 ? i * 9 + j : j * 9 + i;
+                    if (val[c] == 0 && (cand[c] & bit) != 0) m[i] |= 1 << j;
+                }
+                for (let base = 0; base < 512; base++) {
+                    if (bitCount(base) != 4) continue;
+                    let cover = 0, ok = true;
+                    for (let i = 0; i < 9 && ok; i++) if ((base & (1 << i)) != 0) {
+                        let k = bitCount(m[i]);
+                        if (k < 2 || k > 4) ok = false;
+                        cover |= m[i];
+                    }
+                    if (ok && bitCount(cover) == 4 && fishEliminate(val, cand, bit, orient, cover, base)) return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Ring or alternating chain (AIC), the shortest that removes something; the ring first (see Sudoku.java). */
@@ -1055,7 +1185,7 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             }
             if (step(val, cand, true, st)) {
                 tier = Math.max(tier, TIER_OF[st.code]); sub = st.code;
-                hu[0] |= 1 << st.code;
+                if (st.code < 31) hu[0] |= 1 << st.code;   // 32-bit masks here: the newest codes are not marked
                 if (st.ur > 0) hu[0] |= 1 << urBit(st.ur);
                 continue;
             }
@@ -1137,8 +1267,12 @@ function ntz(x){if(x===0)return 32;let n=0;while(!(x&1)){x>>>=1;n++;}return n;}
             var se = 12, n = hiddenSinglesIn(val, cand, 18, 27);
             if (n === 0) { n = hiddenSingles(val, cand); se = 15; }
             if (n > 0) { R.logicSe = Math.max(R.logicSe, se); continue; }
-            if (nakedSingles(val, cand) > 0) { R.tier = Math.max(R.tier, T_NAKED); R.logicSe = Math.max(R.logicSe, 23); continue; }
-            if (step(val, cand, true, st)) {
+            var stepped = step(val, cand, false, st, 0, BEFORE_NAKED);
+            if (!stepped) {
+                if (nakedSingles(val, cand) > 0) { R.tier = Math.max(R.tier, T_NAKED); R.logicSe = Math.max(R.logicSe, 23); continue; }
+                stepped = step(val, cand, true, st, BEFORE_NAKED, ATOMS);
+            }
+            if (stepped) {
                 var t = TIER_OF[st.code];
                 R.steps[t]++; R.tier = Math.max(R.tier, t); R.logicSe = Math.max(R.logicSe, st.se);
                 continue;
