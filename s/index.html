@@ -709,7 +709,7 @@ function digitKey(d) {
       // a note taken off the cell doesn't pick the digit on the pad
       var noteOff = (ui.mode === MODE_CORNER || ui.mode === MODE_CENTER) && ui.sel >= 0 && noteHas(ui.sel, d);
       ui.anchor = ui.sel; input(d);
-      if (!g.status && !noteOff) ui.qd = ui.mode === MODE_ANSWER && placedCount(d) >= 9 ? nextOpen(d) : d;
+      if (!g.status && !noteOff) { if (ui.mode === MODE_ANSWER && placedCount(d) >= 9) moveOn(d); else ui.qd = d; }
       refresh();
     }
     else { ui.qd = ui.qd === d ? 0 : d; ui.anchor = -1; ui.sel = -1; refresh(); }
@@ -812,10 +812,12 @@ function applyUi(u) {
   // the chain goes on from where it ends now (only in the colour that is picked)
   linkTail = u.length > 7 && u[7] >= 0 && ui.drawColor > 0 && hasLinkColor(u[7], ui.drawColor) ? u[7] : -1;
 }
+/** d is finished: the pad picks the next unfinished digit, the cell is let go (only that digit stays highlighted). */
+function moveOn(d) { ui.qd = nextOpen(d); ui.sel = -1; ui.anchor = -1; ui.chosen = false; }
 /** The next digit after d (9 → 1) that is not finished yet, 0 if all are. */
 function nextOpen(d) { for (var k = 1; k <= 8; k++) { var e = (d - 1 + k) % 9 + 1; if (placedCount(e) < 9) return e; } return 0; }
 function celebrate(c, d) {
-  if (placedCount(d) >= 9 && ui.qd === d) ui.qd = nextOpen(d);   // the pad moves on to the next unfinished digit
+  if (placedCount(d) >= 9 && ui.qd === d) moveOn(d);   // the pad moves on to the next unfinished digit
   var fl = new Array(81).fill(false), any = false;
   for (var k = 0; k < 3; k++) { var u = SX.UNITS[SX.CELL_UNITS[c][k]]; if (u.every(function (x) { return g.value[x]; })) { any = true; u.forEach(function (x) { fl[x] = true; }); } }
   if (any) { flashCells = fl; flashStart = performance.now(); requestAnimationFrame(draw); }
