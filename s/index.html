@@ -122,7 +122,7 @@ var TX = {
     solved: 'Решено', counts: 'Ошибок: {1} · Подсказок: {2}', seLine: 'Сложность по шкале SE ≈ {1}',
     chFriend: '{4}: {1} · ошибок {2} · подсказок {3}', faster: 'Вы быстрее на {1}!', slower: '{2} быстрее на {1}', tie: 'Ровно столько же!',
     afterApk: 'Когда установите игру, вернитесь сюда и нажмите «Открыть в игре» — партия продолжится там с этого места.',
-    onlyApp: 'Это есть только в игре — она на Android.', onlyAndroid: 'Игра есть только на Android: скачайте APK на телефон.', ruReview: 'Игра на модерации в RuStore с 31.10. Пока можно скачать APK.',
+    onlyApp: 'Это есть только в игре — она на Android.', onlyAndroid: 'Игра есть только на Android: скачайте APK на телефон.',
     confirmWrite: 'Записать {1} — все клетки с одной заметкой станут ответами?', yes: 'Записать', cancel: 'Отмена',
     unitRow: 'строке', unitCol: 'столбце', unitBox: 'блоке',
     hHidden: 'Скрытый сингл: в этом {1} одна из цифр может стоять только в выделенной клетке.',
@@ -152,7 +152,7 @@ var TX = {
     solved: 'Solved', counts: 'Mistakes: {1} · Hints: {2}', seLine: 'Difficulty on the SE scale ≈ {1}',
     chFriend: '{4}: {1} · mistakes {2} · hints {3}', faster: 'You are faster by {1}!', slower: '{2} is faster by {1}', tie: 'Exactly the same!',
     afterApk: 'Once the game is installed, come back here and tap «Open in the game» — the game will go on there from this point.',
-    onlyApp: 'This is only in the game — it is on Android.', onlyAndroid: 'The game is only on Android: download the APK to your phone.', ruReview: 'The game has been under review in RuStore since 31 Oct. Meanwhile, download the APK.',
+    onlyApp: 'This is only in the game — it is on Android.', onlyAndroid: 'The game is only on Android: download the APK to your phone.',
     confirmWrite: 'Write {1} — all cells with one note become answers?', yes: 'Write', cancel: 'Cancel',
     unitRow: 'row', unitCol: 'column', unitBox: 'box',
     hHidden: 'Hidden single: in this {1}, one of the digits can only go into the highlighted cell.',
@@ -944,8 +944,7 @@ function openInGame() {
   var back = location.origin + location.pathname + '?c=' + encodeURIComponent(code) + (nick ? '&n=' + encodeURIComponent(nick) : '') + (GSIG ? '&g=' + GSIG : '') + '&noapp=1&lang=' + lang;
   location.href = 'intent://s/?c=' + encodeURIComponent(code) + extra + '#Intent;scheme=sudoky;package=ru.sudoky;S.browser_fallback_url=' + encodeURIComponent(back) + ';end';
 }
-// the game is under review in RuStore: a note instead of the link (back: location.href = RUSTORE)
-function rustore() { if (!ANDROID) { tip(t.onlyAndroid); return; } tip(t.ruReview, 4000); }
+function rustore() { if (!ANDROID) { tip(t.onlyAndroid); return; } location.href = RUSTORE; }
 function apk() { if (started && !g.status) tip(t.afterApk, 9000); var a = document.createElement('a'); a.href = APK; a.download = 'Sudoky.apk'; document.body.appendChild(a); a.click(); a.remove(); }
 
 // ------------------------------------------------------------------ cards: start, pause, solved, tip
