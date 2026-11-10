@@ -135,7 +135,11 @@ var TX = {
     hMore: 'Как работает приём — в справке игры на Android.',
     tech: {hidden: 'скрытый сингл', naked: 'явный сингл', 1: 'X-wing', 2: 'небоскрёб', 3: 'рыба-меч', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
            7: 'пустой прямоугольник', 8: 'прямоугольник уникальности', 9: 'X-цепочка', 10: 'M-wing', 11: 'S-wing', 12: 'XY-цепочка',
-           13: 'рыба с плавником', 14: 'BUG+1', 15: 'блокировка кандидатов', 16: 'пары', 17: 'тройки', 20: 'воздушный змей', 21: 'рыба-меч с плавником', 22: 'кольцо', 23: 'чередующаяся цепочка (AIC)'}
+           13: 'рыба с плавником', 14: 'BUG+1', 15: 'блокировка кандидатов', 16: 'пары', 17: 'тройки', 20: 'воздушный змей', 21: 'рыба-меч с плавником', 22: 'кольцо', 23: 'чередующаяся цепочка (AIC)',
+           29: 'прямая блокировка', 30: 'прямая скрытая пара', 31: 'прямая скрытая тройка', 32: 'явный квартет', 33: 'медуза', 34: 'скрытый квартет',
+           35: 'петля уникальности, вариант 1', 36: 'петля уникальности, вариант 2', 37: 'петля уникальности, вариант 3', 38: 'петля уникальности, вариант 4',
+           39: 'BUG, вариант 2', 40: 'BUG, вариант 3', 41: 'BUG, вариант 4', 42: 'исключение выровненной пары', 43: 'исключение выровненной тройки',
+           44: 'цепочка Нисио', 45: 'цепи форсирования из клетки', 46: 'цепи форсирования из дома'}
   },
   en: {
     titleShared: 'Someone sent you a sudoku', titleChallenge: 'Beat my time!', titlePlain: 'Sudoky',
@@ -165,7 +169,11 @@ var TX = {
     hMore: 'How the technique works — in the help of the game on Android.',
     tech: {hidden: 'hidden single', naked: 'naked single', 1: 'X-wing', 2: 'Skyscraper', 3: 'Swordfish', 4: 'XY-wing', 5: 'XYZ-wing', 6: 'W-wing',
            7: 'empty rectangle', 8: 'unique rectangle', 9: 'X-chain', 10: 'M-wing', 11: 'S-wing', 12: 'XY-chain',
-           13: 'finned fish', 14: 'BUG+1', 15: 'locked candidates', 16: 'pairs', 17: 'triples', 20: '2-String Kite', 21: 'finned Swordfish', 22: 'ring', 23: 'alternating chain (AIC)'}
+           13: 'finned fish', 14: 'BUG+1', 15: 'locked candidates', 16: 'pairs', 17: 'triples', 20: '2-String Kite', 21: 'finned Swordfish', 22: 'ring', 23: 'alternating chain (AIC)',
+           29: 'direct locked candidates', 30: 'direct hidden pair', 31: 'direct hidden triple', 32: 'naked quad', 33: 'jellyfish', 34: 'hidden quad',
+           35: 'unique loop, type 1', 36: 'unique loop, type 2', 37: 'unique loop, type 3', 38: 'unique loop, type 4',
+           39: 'BUG, type 2', 40: 'BUG, type 3', 41: 'BUG, type 4', 42: 'aligned pair exclusion', 43: 'aligned triplet exclusion',
+           44: 'Nishio chain', 45: 'cell forcing chains', 46: 'region forcing chains'}
   }
 };
 var lang, t;
@@ -202,8 +210,8 @@ function seText(r) {
   if (r >= 1000) { var b = Math.min(r - 1000, 120); return Math.floor(b / 10) + (b % 10 ? t.dec + (b % 10) : '') + '+'; }   // out of time: at least this
   if (r >= 120) return '12+';
   return Math.floor(r / 10) + t.dec + (r % 10); }
-/** Key moves: «12» or «12+2» (+ assumptions of the 2nd degree). */
-function stepsText(st) { return st >= 1000 ? (st % 1000) + '+' + Math.floor(st / 1000) : String(st); }
+/** Key moves: «12», «12+2» or «12+2+1» (+ assumptions of the 2nd degree, + of the 3rd). */
+function stepsText(st) { var a = st % 1000, b = Math.floor(st / 1000) % 1000, c = Math.floor(st / 1000000); return c > 0 ? a + '+' + b + '+' + c : b > 0 ? a + '+' + b : String(a); }
 
 var D = null;
 try { D = code ? decode(code) : null; } catch (e) { D = null; }
