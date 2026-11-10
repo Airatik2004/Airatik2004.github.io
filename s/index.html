@@ -13,9 +13,9 @@
 <meta property="og:image" content="https://airatik2004.github.io/icon.png">
 <meta property="og:type" content="website">
 <style>
-  :root { --bg:#F3F4F9; --surface:#FFFFFF; --text:#1B1D29; --dim:#8A8FA3; --accent:#3D5AFE; --soft:#E3E8FF; --line:#E1E4EE;
+  :root { --gold:#D4A017; --bg:#F3F4F9; --surface:#FFFFFF; --text:#1B1D29; --dim:#8A8FA3; --accent:#3D5AFE; --soft:#E3E8FF; --line:#E1E4EE;
           --error:#E53935; --ok:#2E9E62; --onaccent:#fff; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#111219; --surface:#1B1D27; --text:#E8EAF2; --dim:#7C8196; --accent:#8193FF; --soft:#2A2F52;
+  @media (prefers-color-scheme: dark) { :root { --gold:#F2C14E; --bg:#111219; --surface:#1B1D27; --text:#E8EAF2; --dim:#7C8196; --accent:#8193FF; --soft:#2A2F52;
           --line:#2A2D3B; --error:#FF6B6B; --ok:#5BD394; --onaccent:#fff; } }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:15px/1.35 system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
@@ -49,6 +49,7 @@
   .key { position:relative; margin:0 2.5px; height:62px; border-radius:10px; background:var(--surface); transition:transform .12s; }
   .key.raised { transform:translateY(-7px); box-shadow:inset 0 0 0 1.6px var(--accent); }
   .key.chosen { background:var(--accent); color:#fff; }
+  .key.peeked { box-shadow:inset 0 0 0 2px var(--gold); }   /* a digit lit by a long press: gold frame, the key doesn't pop up */
   .key.pressed { background:var(--soft); }
   .key .dg { position:absolute; left:0; right:0; text-align:center; font-weight:600; }
   .key .ct { position:absolute; left:0; right:0; bottom:5px; text-align:center; font-size:11px; color:var(--dim); }
@@ -723,7 +724,11 @@ function digitKey(d) {
     else { ui.qd = ui.qd === d ? 0 : d; ui.anchor = -1; ui.sel = -1; refresh(); }
   } else input(d);
 }
-function peekKey(d) { if (!started || paused) return; peekCell = -1; if (ui.quick) ui.qd = 0; if (!hasSel()) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
+function peekKey(d) {
+  if (!started || paused) return;
+  // held again on the digit already lit: the highlight goes off (another digit — lit instead)
+  if (ui.peek === d) { ui.peek = 0; vib(15); refresh(); return; }
+  peekCell = -1; if (ui.quick) ui.qd = 0; if (!hasSel()) ui.sel = -1; ui.peek = d; vib(15); refresh(); }
 function colorKey(k) {
   if (!started || paused) return; ui.eraser = false; peekCell = -1;
   if (drawing()) { linkColorKey(k); return; }
@@ -805,8 +810,9 @@ function eraserTap() {
   if (ui.eraser) { ui.eraser = false; refresh(); return; }
   if (ui.quick && hasSel()) { eraseSel(); return; }   // cells selected by a swipe: all of them are cleaned
   if (ui.quick) {
-    // a cell chosen first (then «Ластик»): it is cleaned right away, the eraser stays picked
-    var sc = ui.chosen ? ui.sel : -1;
+    // the cell the quick input points at (chosen first, or where the digit just went): cleaned right
+    // away, the eraser stays picked. A right digit picked from the board is not erased by this.
+    var sc = ui.chosen ? ui.sel : ui.anchor >= 0 && !(g.value[ui.anchor] && !g.wrong[ui.anchor]) ? ui.anchor : -1;
     ui.eraser = true; ui.qd = 0; ui.chosen = false; ui.peek = 0; if (drawing()) leaveLinks();
     if (sc >= 0 && eraseFull(sc)) afterChange(); else refresh();
     return;
@@ -844,7 +850,7 @@ function refreshControls() {
     var k = keys[d], left = 9 - placedCount(d), raised = false;
     if (mc) { raised = mc.length > 0 && mc.every(function (c) { return ui.mode === MODE_ANSWER ? g.value[c] === d : !g.value[c] && hasNote(c, d, ui.mode); }) && ui.mode !== MODE_COLOR; }
     else if (sc >= 0 && !g.value[sc]) raised = ui.mode === MODE_CORNER ? g.corner[sc].indexOf(String(d)) >= 0 : ui.mode === MODE_CENTER && (g.center[sc] & (1 << d)) !== 0;
-    k.className = 'key' + (ui.quick && ui.qd === d ? ' chosen' : '') + (raised ? ' raised' : '') + (left <= 0 ? ' done' : '');
+    k.className = 'key' + (ui.quick && ui.qd === d ? ' chosen' : '') + (raised ? ' raised' : '') + (ui.peek === d ? ' peeked' : '') + (left <= 0 ? ' done' : '');
     var dg = k.firstChild, h = 62;
     if (ui.mode === MODE_ANSWER) { dg.style.cssText = 'top:' + (h * 0.45 - 17) + 'px;font-size:30px;color:' + (ui.quick && ui.qd === d ? '#fff' : left <= 0 ? '' : 'var(--accent)'); }
     else if (ui.mode === MODE_CORNER) { dg.style.cssText = 'top:5px;left:8px;right:auto;font-size:17px'; }
