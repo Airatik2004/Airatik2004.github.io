@@ -739,13 +739,15 @@ function colorKey(k) {
   } else input(k);
 }
 function setMode(m) {
-  if (!started || paused) return; ui.peek = 0;
-  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0; if (m <= MODE_CENTER) ui.lastNote = m; var w0 = drawing(); ui.mode = m; switchLinks(w0); refresh(); return; }
+  if (!started || paused) return;
+  // a digit lit by a long press lives like the picked quick digit: kept among «Угол», «Центр», «Ответ»,
+  // dropped going into or out of the third tab, where the pad keys are colours
+  if (ui.eraser) { ui.eraser = false; if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) { ui.qd = 0; ui.peek = 0; } if (m <= MODE_CENTER) ui.lastNote = m; var w0 = drawing(); ui.mode = m; switchLinks(w0); refresh(); return; }
   // the same mode again: «Цвет» ↔ «Связь»; «Ответ» → the notes mode used last; «Угол» ↔ «Центр»
-  if (m === ui.mode && m === MODE_COLOR) { var w1 = drawing(); ui.link = !ui.link; ui.qd = 0; ui.chosen = false; switchLinks(w1); refresh(); return; }
+  if (m === ui.mode && m === MODE_COLOR) { var w1 = drawing(); ui.link = !ui.link; ui.qd = 0; ui.chosen = false; ui.peek = 0; switchLinks(w1); refresh(); return; }
   if (m === ui.mode) m = m === MODE_ANSWER ? ui.lastNote : (m === MODE_CORNER ? MODE_CENTER : MODE_CORNER);
   if (m <= MODE_CENTER) ui.lastNote = m;
-  if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) ui.qd = 0;
+  if ((m === MODE_COLOR) !== (ui.mode === MODE_COLOR)) { ui.qd = 0; ui.peek = 0; }
   var was = drawing(); ui.mode = m; switchLinks(was);
   refresh();
 }
