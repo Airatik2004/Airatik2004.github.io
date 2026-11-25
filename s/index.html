@@ -60,6 +60,7 @@
   .tabs { display:flex; padding:0 5px 8px; height:74px; } .tabs > * { flex:1; }
   .tab { position:relative; margin:2.5px; border-radius:12px; background:var(--surface); color:var(--dim); }
   .tab.on { background:var(--soft); color:var(--accent); font-weight:600; }
+  .tab.dash { outline:1.5px dashed var(--accent); outline-offset:-3px; }   /* in «Ответ»: where a second tap and a swipe with a digit go */
   .tab canvas { position:absolute; left:50%; top:8px; transform:translateX(-50%); }
   .tab span { position:absolute; left:0; right:0; bottom:7px; font-size:12px; text-align:center; }
   .dim { opacity:.35; }
@@ -577,11 +578,12 @@ cv.addEventListener('pointermove', function (e) {
   if (ui.quick && ui.eraser) { if (c !== lastErased) { lastErased = c; if (eraseFull(c)) afterChange(); } return; }
   if (ui.quick) {
     if (peeked || holdCell < 0 || c === lastCell) return;
-    // «Ответ»: answers go in only by taps — a swipe never puts the digit; without a digit picked it moves the
-    // selection along (one cell, with its row, column and box), chosen on lifting the finger
-    if (ui.mode === MODE_ANSWER) {
+    // «Ответ» without a digit picked: a swipe moves the selection along (one cell, with its row, column and
+    // box), chosen on lifting the finger. With a digit — the brush below: answers go in only by taps, a swipe
+    // puts the digit as notes (the notes mode used last)
+    if (ui.mode === MODE_ANSWER && !ui.qd) {
       moved = true; clearTimeout(holdTimer); lastCell = c;
-      if (!ui.qd) { sliding = true; clearSel(); peekCell = -1; ui.sel = c; draw(); }
+      sliding = true; clearSel(); peekCell = -1; ui.sel = c; draw();
       return;
     }
     if (!moved) {
@@ -666,13 +668,13 @@ function brushCell(c) {
   if (ui.mode === MODE_COLOR) {
     if (d > 3) return; var has = hasColor(c, d); if (brushAdd < 0) brushAdd = has ? 0 : 1;
     if (has !== (brushAdd === 1)) brushAny = toggleColor(c, d) || brushAny;
-  } else if (ui.mode !== MODE_ANSWER) {
-    if (g.value[c]) return; var hn = hasNote(c, d, ui.mode); if (brushAdd < 0) brushAdd = hn ? 0 : 1;
-    if (brushAdd === 1 && placedCount(d) >= 9) return;
-    if (hn !== (brushAdd === 1)) brushAny = (ui.mode === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d)) || brushAny;
   } else {
-    if (!canAnswer(c) || placedCount(d) >= 9 || (g.wrong[c] && g.value[c] === d)) return;
-    brushAny = true; if (answer(c, d)) brushOk = c; else brushMistake = true;
+    // «Угол», «Центр»; and «Ответ», where answers go in only by taps and a swipe puts notes of the notes mode
+    // used last (the tab with the dashed frame)
+    var nm = ui.mode === MODE_ANSWER ? ui.lastNote : ui.mode;
+    if (g.value[c]) return; var hn = hasNote(c, d, nm); if (brushAdd < 0) brushAdd = hn ? 0 : 1;
+    if (brushAdd === 1 && placedCount(d) >= 9) return;
+    if (hn !== (brushAdd === 1)) brushAny = (nm === MODE_CORNER ? toggleCorner(c, d) : toggleCenter(c, d)) || brushAny;
   }
   vib(8); refreshControls();
 }
@@ -875,7 +877,7 @@ function refreshControls() {
   $('bPause').className = 'pill' + (g.status ? ' off' : '');
   $('bWrite').style.visibility = !g.status && writeAllCount() > 0 ? 'visible' : 'hidden';
   [MODE_CORNER, MODE_CENTER, MODE_COLOR, MODE_ANSWER].forEach(function (m) {
-    var b = tabs[m]; b.className = 'tab' + (m === ui.mode && !ui.eraser ? ' on' : '') + (ui.eraser ? ' dim' : '');
+    var b = tabs[m]; b.className = 'tab' + (m === ui.mode && !ui.eraser ? ' on' : '') + (ui.mode === MODE_ANSWER && !ui.eraser && m === ui.lastNote ? ' dash' : '') + (ui.eraser ? ' dim' : '');
     drawTabIcon(b.firstChild, m, m === ui.mode && !ui.eraser, m === MODE_COLOR && ui.link ? 1 : 0);
   });
   $('bSpeed').textContent = ui.quick ? t.quick : t.slow;
